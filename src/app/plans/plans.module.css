@@ -1,0 +1,102 @@
+.container {
+    padding: 1rem;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    background: white;
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.controls {
+    display: flex;
+    gap: 1rem;
+}
+
+.dateInput {
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.buttonPrimary {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.buttonPrimary:disabled {
+    background: #ccc;
+}
+
+.section {
+    margin-bottom: 2rem;
+    background: white;
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th,
+.table td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+.table th {
+    background: #f9f9f9;
+    font-weight: 600;
+}
+
+.reason {
+    font-size: 0.85rem;
+    color: #666;
+}
+
+.status {
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    text-transform: capitalize;
+}
+
+.status.assigned {
+    background: #e6f7ff;
+    color: #0050b3;
+}
+
+.status.shortage {
+    background: #fff1f0;
+    color: #cf1322;
+}
+
+.status.external {
+    background: #fffbe6;
+    color: #faad14;
+}
+
+.shortageSection {
+    background: #fff2f0;
+    border: 1px solid #ffccc7;
+    padding: 1rem;
+    border-radius: 8px;
+}
+
+.shortageSection h3 {
+    color: #cf1322;
+    margin-top: 0;
+}

@@ -1,9 +1,12 @@
 :root {
-  --primary-color: #dfa668; /* Desert sand tone */
-  --secondary-color: #2c3e50;
-  --bg-color: #f8f9fa;
-  --text-color: #1a1a1a;
-  --card-bg: #ffffff;
+  --primary-color: #7C4C2C;   /* Nara Brown - Actions */
+  --secondary-color: #24221C; /* Nara Dark - Headers */
+  --accent-color: #E4D0BE;    /* Nara Beige - Highlights */
+  --text-color: #24221C;      /* Nara Dark - Text */
+  --bg-color: #F8F8F6;        /* Warm Off-white */
+  --card-bg: #FFFFFF;
+  --muted-color: #948C88;     /* Nara Grey */
+  --border-color: #E0E0E0;
 }
 
 body {

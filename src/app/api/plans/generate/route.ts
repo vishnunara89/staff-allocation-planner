@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { calculateRequirements, allocateStaff } from '@/lib/engine';
-import { Event, Venue, StaffingRule, Role, StaffMember } from '@/types';
+import { Event, Venue, StaffingRule, Role, StaffMember, ManningBracketRow } from '@/types';
 
 function parseStaff(row: any): StaffMember {
     return {
@@ -35,13 +35,20 @@ export async function POST(request: Request) {
         const staffRows = db.prepare('SELECT * FROM staff').all();
         const staff = staffRows.map(parseStaff);
 
-        log(`[PlanGen] Fetched: ${events.length} events, ${venues.length} venues, ${rules.length} rules, ${roles.length} roles`);
+        // Fetch and parse brackets
+        const bracketRows = db.prepare('SELECT * FROM manning_brackets').all() as any[];
+        const brackets: ManningBracketRow[] = bracketRows.map(row => ({
+            ...row,
+            counts: JSON.parse(row.counts_json)
+        }));
+
+        log(`[PlanGen] Fetched: ${events.length} events, ${venues.length} venues, ${rules.length} rules, ${roles.length} roles, ${brackets.length} brackets`);
 
         events.forEach(e => {
             log(`[PlanGen] Event: ID=${e.id}, VenueID=${e.venue_id} (type: ${typeof e.venue_id}), Guests=${e.guest_count}`);
         });
 
-        const venueIdsInEvents = [...new Set(events.map(e => e.venue_id))];
+        const venueIdsInEvents = Array.from(new Set(events.map(e => e.venue_id)));
         log(`[PlanGen] Venue IDs in events: ${JSON.stringify(venueIdsInEvents)}`);
 
         venueIdsInEvents.forEach(vid => {
@@ -63,7 +70,7 @@ export async function POST(request: Request) {
 
         try {
             log('[PlanGen] Starting calculation...');
-            requirements = calculateRequirements(events, venues, rules, roles, log);
+            requirements = calculateRequirements(events, venues, rules, roles, brackets, log);
             log(`[PlanGen] Calculation done. Requirements: ${requirements.length}`);
             requirements.forEach(req => {
                 log(`[PlanGen]   Req: Venue=${req.venue_id}, Role=${req.role_name}, Count=${req.count}`);

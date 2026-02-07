@@ -5,7 +5,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-    title: "Staff Allocation Planner",
+    title: "Nara Pulse",
     description: "Nara Desert Escape Staffing Management",
 };
 
@@ -19,7 +19,7 @@ export default function RootLayout({
             <body className={inter.className}>
                 <div className="layout-container">
                     <header className="main-header">
-                        <h1>Staff Allocation Planner</h1>
+                        <h1>Nara Pulse</h1>
                         <nav>
                             <a href="/venues">Venues</a>
                             <a href="/staff">Staff Roster</a>

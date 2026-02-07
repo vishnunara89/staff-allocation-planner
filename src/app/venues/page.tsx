@@ -9,6 +9,7 @@ export default function VenuesPage() {
     const [venues, setVenues] = useState<Venue[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
 
     useEffect(() => {
         fetchVenues();
@@ -28,8 +29,8 @@ export default function VenuesPage() {
         }
     }
 
-    // Simple automated creation for demo if empty
     async function createDefaultVenues() {
+        setLoading(true);
         const defaults = [
             { name: 'Sonara Camp', type: 'camp', default_service_style: 'sharing' },
             { name: 'Nara Main', type: 'camp', default_service_style: 'buffet' },
@@ -46,28 +47,70 @@ export default function VenuesPage() {
         fetchVenues();
     }
 
-    if (loading) return <div>Loading...</div>;
-    if (error) return <div className="error">{error}</div>;
+    const filteredVenues = venues.filter(venue =>
+        venue.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        venue.type?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     return (
         <div className={styles.container}>
             <div className={styles.header}>
-                <h2>Venues</h2>
-                {venues.length === 0 && (
-                    <button onClick={createDefaultVenues} className={styles.button}>Load Default Venues</button>
-                )}
-                <Link href="/venues/new" className={styles.button}>+ Add Venue</Link>
+                <div className={styles.headerText}>
+                    <h2>Venues</h2>
+                    <p>Manage your camp locations and staffing configurations.</p>
+                </div>
+                <div className={styles.actions}>
+                    <input
+                        type="text"
+                        placeholder="Search venues..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className={styles.searchInput}
+                        aria-label="Search venues"
+                    />
+                    <Link href="/venues/new" className={styles.primaryButton}>+ Add Venue</Link>
+                </div>
             </div>
 
-            <div className={styles.grid}>
-                {venues.map(venue => (
-                    <Link href={`/venues/${venue.id}`} key={venue.id} className={styles.card}>
-                        <h3>{venue.name}</h3>
-                        <span className={styles.badge}>{venue.type}</span>
-                        <p>Service: {venue.default_service_style}</p>
-                    </Link>
-                ))}
-            </div>
+            {loading ? (
+                <div className={styles.grid}>
+                    {[1, 2, 3].map(i => (
+                        <div key={i} className={`${styles.card} ${styles.skeleton}`}>
+                            <div className={styles.skeletonTitle}></div>
+                            <div className={styles.skeletonBadge}></div>
+                            <div className={styles.skeletonText}></div>
+                        </div>
+                    ))}
+                </div>
+            ) : error ? (
+                <div className={styles.error}>{error}</div>
+            ) : filteredVenues.length === 0 ? (
+                <div className={styles.emptyState}>
+                    {venues.length === 0 ? (
+                        <>
+                            <h3>No venues found</h3>
+                            <p>Get started by adding your first venue or loading defaults.</p>
+                            <button onClick={createDefaultVenues} className={styles.secondaryButton}>Load Default Venues</button>
+                        </>
+                    ) : (
+                        <p>No venues match "{searchQuery}"</p>
+                    )}
+                </div>
+            ) : (
+                <div className={styles.grid}>
+                    {filteredVenues.map(venue => (
+                        <Link href={`/venues/${venue.id}`} key={venue.id} className={styles.card}>
+                            <div className={styles.cardHeader}>
+                                <h3>{venue.name}</h3>
+                                <span className={styles.badge}>{venue.type}</span>
+                            </div>
+                            <div className={styles.cardBody}>
+                                <p>Service Style: <strong>{venue.default_service_style}</strong></p>
+                            </div>
+                        </Link>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }

@@ -1,4 +1,4 @@
-import { Venue, StaffingRule, Event, StaffMember, Role } from '@/types';
+import { Venue, StaffingRule, Event, StaffMember, Role, ManningBracketRow } from '@/types';
 
 export interface StaffRequirement {
     venue_id: number;
@@ -25,6 +25,7 @@ export interface DailyPlan {
     shortages: { role_id: number; role_name: string; count: number; venue_id: number }[];
 }
 
+
 // --- Rule Engine ---
 
 export function calculateRequirements(
@@ -32,6 +33,7 @@ export function calculateRequirements(
     venues: Venue[],
     rules: StaffingRule[],
     roles: Role[],
+    brackets: ManningBracketRow[] = [],
     log?: (msg: string) => void
 ): StaffRequirement[] {
     const requirements: StaffRequirement[] = [];
@@ -51,65 +53,94 @@ export function calculateRequirements(
             return;
         }
 
-        // Calculate peak guest count or sum? 
-        // Instructions: "If multiple events overlap... sum requirements. If no time provided, assume overlap."
-        // For simple MVP let's sum guest counts if they overlap, but since we are doing daily planner, 
-        // let's assume valid total guest count for the "shift".
-        // A better approach for MVP: Iterate through each event, calculate requirements, and aggregate max needed per role?
-        // Or better: Sum guest counts for the day to get a "total load" for ratio rules?
-        // The instruction says: "For each event... Compute required staff... Sum requirements if overlap"
-        // Let's treat them as additive for now.
-
+        // Get all rules and brackets for this venue
         const venueRules = rules.filter(r => Number(r.venue_id) === Number(venueId));
-        log?.(`[Engine] Venue ${venueId} processing: ${venueEvents.length} events, ${venueRules.length} rules`);
+        const venueBrackets = brackets.filter(b => Number(b.venue_id) === Number(venueId));
 
+        log?.(`[Engine] Venue ${venueId} processing: ${venueEvents.length} events, ${venueRules.length} rules, ${venueBrackets.length} brackets`);
+
+        // Identify all departments involved in this venue
+        // Departments can come from Rules or Brackets
+        const departments = new Set<string>();
+        venueRules.forEach(r => departments.add(r.department.toLowerCase()));
+        venueBrackets.forEach(b => departments.add(b.department.toLowerCase()));
+
+        // For each event, calculate requirements per department
         venueEvents.forEach(event => {
-            venueRules.forEach(rule => {
-                const role = roles.find(r => Number(r.id) === Number(rule.role_id));
-                if (!role) {
-                    log?.(`[Engine] Role ${rule.role_id} not found for rule`);
-                    return;
-                }
+            departments.forEach(dept => {
+                let applied = false;
 
-                let count = 0;
-                const reasons: string[] = [];
+                // 1. Check Brackets for this Dept
+                const deptBrackets = venueBrackets.filter(b => b.department.toLowerCase() === dept);
+                if (deptBrackets.length > 0) {
+                    // Find bracket matching guest count
+                    const match = deptBrackets.find(b =>
+                        event.guest_count >= b.guest_min &&
+                        event.guest_count <= b.guest_max
+                    );
 
-                // Ratio Rule
-                if (rule.ratio_guests > 0 && rule.ratio_staff > 0) {
-                    const ratioCount = Math.ceil(event.guest_count / rule.ratio_guests) * rule.ratio_staff;
-                    count += ratioCount;
-                    if (ratioCount > 0) reasons.push(`Ratio: 1/${rule.ratio_guests} guests (${event.guest_count} guests)`);
-                }
+                    if (match) {
+                        log?.(`[Engine]   Event ${event.id} (${event.guest_count} pax) matched Bracket for ${dept}: ${match.guest_min}-${match.guest_max}`);
+                        // Apply counts from bracket
+                        for (const [roleIdStr, count] of Object.entries(match.counts)) {
+                            const roleId = Number(roleIdStr);
+                            const role = roles.find(r => r.id === roleId);
+                            const finalCount = Number(count);
 
-                // Threshold Rule
-                if (rule.threshold_guests && event.guest_count >= rule.threshold_guests) {
-                    const thresholdAdd = rule.threshold_staff || 0;
-                    count += thresholdAdd;
-                    reasons.push(`Threshold: >${rule.threshold_guests} guests (+${thresholdAdd})`);
-                }
-
-                // Minimum Rule
-                if (rule.min_required && count < rule.min_required) {
-                    reasons.push(`Minimum required: ${rule.min_required}`);
-                    count = rule.min_required;
-                }
-
-                log?.(`[Engine]   Event ${event.id} Rule Role=${role.name}: CalcCount=${count} (Ratio=${rule.ratio_guests}:${rule.ratio_staff}, Thresh=${rule.threshold_guests})`);
-
-                if (count > 0) {
-                    // Check if req already exists for this venue/role (generic aggregation)
-                    const existing = requirements.find(r => r.venue_id === venueId && r.role_id === rule.role_id);
-                    if (existing) {
-                        existing.count += count;
-                        existing.reasoning.push(...reasons);
+                            if (finalCount > 0 && role) {
+                                // Add requirement
+                                addRequirement(
+                                    requirements,
+                                    venueId,
+                                    venue.name,
+                                    roleId,
+                                    role.name,
+                                    finalCount,
+                                    [`Bracket: ${match.guest_min}-${match.guest_max} pax (${event.guest_count} guests)`]
+                                );
+                            }
+                        }
+                        applied = true;
                     } else {
-                        requirements.push({
-                            venue_id: venueId,
-                            venue_name: venue.name,
-                            role_id: rule.role_id,
-                            role_name: role.name,
-                            count,
-                            reasoning: reasons
+                        log?.(`[Engine]   Event ${event.id} (${event.guest_count} pax) has brackets for ${dept} but no match found.`);
+                        applied = true; // Handled (result is 0)
+                    }
+                }
+
+                // 2. Fallback to Ratio Rules if no brackets applied
+                if (!applied) {
+                    const deptRules = venueRules.filter(r => r.department.toLowerCase() === dept);
+                    if (deptRules.length > 0) {
+                        deptRules.forEach(rule => {
+                            const role = roles.find(r => Number(r.id) === Number(rule.role_id));
+                            if (!role) return;
+
+                            let count = 0;
+                            const reasons: string[] = [];
+
+                            // Ratio Rule
+                            if (rule.ratio_guests > 0 && rule.ratio_staff > 0) {
+                                const ratioCount = Math.ceil(event.guest_count / rule.ratio_guests) * rule.ratio_staff;
+                                count += ratioCount;
+                                if (ratioCount > 0) reasons.push(`Ratio: 1/${rule.ratio_guests} guests (${event.guest_count} guests)`);
+                            }
+
+                            // Threshold Rule
+                            if (rule.threshold_guests && event.guest_count >= rule.threshold_guests) {
+                                const thresholdAdd = rule.threshold_staff || 0;
+                                count += thresholdAdd;
+                                reasons.push(`Threshold: >${rule.threshold_guests} guests (+${thresholdAdd})`);
+                            }
+
+                            // Minimum Rule
+                            if (rule.min_required && count < rule.min_required) {
+                                reasons.push(`Minimum required: ${rule.min_required}`);
+                                count = rule.min_required;
+                            }
+
+                            if (count > 0) {
+                                addRequirement(requirements, venueId, venue.name, rule.role_id, role.name, count, reasons);
+                            }
                         });
                     }
                 }
@@ -118,6 +149,31 @@ export function calculateRequirements(
     });
 
     return requirements;
+}
+
+function addRequirement(
+    requirements: StaffRequirement[],
+    venueId: number,
+    venueName: string,
+    roleId: number,
+    roleName: string,
+    count: number,
+    reasons: string[]
+) {
+    const existing = requirements.find(r => r.venue_id === venueId && r.role_id === roleId);
+    if (existing) {
+        existing.count += count;
+        existing.reasoning.push(...reasons);
+    } else {
+        requirements.push({
+            venue_id: venueId,
+            venue_name: venueName,
+            role_id: roleId,
+            role_name: roleName,
+            count,
+            reasoning: reasons
+        });
+    }
 }
 
 

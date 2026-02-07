@@ -60,3 +60,14 @@ export interface Event {
 }
 
 export type CreateEventDTO = Omit<Event, 'id'>;
+
+export interface ManningBracketRow {
+    id: number;
+    venue_id: number;
+    department: string;
+    guest_min: number;
+    guest_max: number;
+    counts: Record<number, number>; // Hydrated from counts_json
+    notes?: string;
+    source?: 'manual' | 'excel';
+}

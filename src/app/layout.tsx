@@ -1,11 +1,19 @@
 import type { Metadata } from "next";
-import { Outfit } from "next/font/google";
+import { Outfit, Cormorant_Garamond } from "next/font/google";
 import "./globals.css";
 
 const outfit = Outfit({
   subsets: ["latin"],
+  weight: ['300', '400', '500', '600'],
+  display: 'swap',
+  variable: '--font-outfit',
+});
+
+const cormorant = Cormorant_Garamond({
+  subsets: ["latin"],
   weight: ['300', '400', '500', '600', '700'],
   display: 'swap',
+  variable: '--font-cormorant',
 });
 
 export const metadata: Metadata = {
@@ -20,7 +28,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={outfit.className}>
+      <body className={`${outfit.variable} ${cormorant.variable} ${outfit.className}`}>
         <div className="app-layout">
           {/* SIDEBAR */}
           <aside className="sidebar">

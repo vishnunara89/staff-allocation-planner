@@ -15,7 +15,10 @@
 .headerText h2 {
     margin: 0 0 0.5rem 0;
     color: var(--secondary-color);
-    font-size: 1.85rem;
+    font-size: 2.2rem;
+    /* Matches global heading style more closely */
+    font-family: var(--font-cormorant), serif;
+    font-weight: 500;
 }
 
 .headerText p {
@@ -92,7 +95,8 @@
     height: 42px;
     padding: 0 1.15rem;
     font-size: 0.8rem;
-    font-weight: 600;
+    font-weight: 500;
+    /* Lighter */
     color: #64748b;
     background: #f1f5f9;
     border: none;
@@ -145,7 +149,8 @@
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: #64748b;
-    font-weight: 700;
+    font-weight: 600;
+    /* Lighter than 700 */
     border-bottom: 1.5px solid #f1f5f9;
 }
 
@@ -193,7 +198,8 @@
 }
 
 .staffName {
-    font-weight: 600;
+    font-weight: 500;
+    /* Lighter than 600 */
     color: #1e293b;
     font-size: 1rem;
 }
@@ -210,7 +216,8 @@
     border-radius: 6px;
     background: #f1f5f9;
     color: #64748b;
-    font-weight: 600;
+    font-weight: 500;
+    /* Lighter than 600 */
     letter-spacing: 0.02em;
 }
 
@@ -232,7 +239,8 @@
     padding: 0.4rem 0.75rem;
     border-radius: 10px;
     font-size: 0.8rem;
-    font-weight: 600;
+    font-weight: 500;
+    /* Lighter than 600 */
     text-transform: capitalize;
 }
 

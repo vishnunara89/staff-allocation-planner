@@ -23,8 +23,10 @@ h3,
 h4,
 h5,
 h6 {
-  letter-spacing: -0.02em;
-  font-weight: 600;
+  font-family: var(--font-cormorant), serif;
+  letter-spacing: -0.01em;
+  font-weight: 500;
+  line-height: 1.1;
 }
 
 /* =====================
@@ -36,9 +38,11 @@ h6 {
 
 body {
   margin: 0;
+  font-family: var(--font-outfit), sans-serif;
   background-color: var(--bg-color);
-  color: var(--text-color);
-  line-height: 1.6;
+  color: #24221C;
+  line-height: 1.7;
+  font-weight: 400;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -134,7 +138,8 @@ body {
 .stat-card p {
   margin: 0.5rem 0 0;
   font-size: 2rem;
-  font-weight: 600;
+  font-weight: 400;
+  /* Lighter weight */
   color: var(--secondary-color);
 }
 
@@ -330,7 +335,8 @@ button:hover {
 
 .sidebar-brand {
   font-size: 1.2rem;
-  font-weight: 700;
+  font-weight: 600;
+  /* Lighter weight */
   color: var(--secondary-color);
   margin-bottom: 2rem;
   display: flex;
@@ -363,7 +369,8 @@ button:hover {
 
 .sidebar-nav a.active {
   background: var(--accent-color);
-  font-weight: 600;
+  font-weight: 500;
+  /* Subtle active state */
 }
 
 /* =====================

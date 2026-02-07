@@ -2,9 +2,12 @@
    THEME VARIABLES
 ===================== */
 :root {
-  --primary-color: #7C4C2C;   /* Nara Brown - Actions */
-  --secondary-color: #24221C; /* Nara Dark - Headers */
-  --accent-color: #E4D0BE;    /* Nara Beige - Highlights */
+  --primary-color: #7C4C2C;
+  /* Nara Brown - Actions */
+  --secondary-color: #24221C;
+  /* Nara Dark - Headers */
+  --accent-color: #E4D0BE;
+  /* Nara Beige - Highlights */
   --text-color: #24221C;
   --bg-color: #F8F8F6;
   --card-bg: #FFFFFF;
@@ -12,6 +15,16 @@
   --border-color: #E0E0E0;
   --success-color: #3f7f5f;
   --danger-color: #b91c1c;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  letter-spacing: -0.02em;
+  font-weight: 600;
 }
 
 /* =====================
@@ -25,8 +38,9 @@ body {
   margin: 0;
   background-color: var(--bg-color);
   color: var(--text-color);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  line-height: 1.5;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* =====================
@@ -146,7 +160,7 @@ body {
 
 .card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 18px rgba(0,0,0,0.08);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
   border-color: var(--primary-color);
 }
 
@@ -186,7 +200,8 @@ thead {
   background: var(--accent-color);
 }
 
-th, td {
+th,
+td {
   padding: 0.75rem 1rem;
   text-align: left;
   border-bottom: 1px solid var(--border-color);
@@ -289,6 +304,7 @@ button:hover {
   color: var(--danger-color);
   padding: 1rem;
 }
+
 /* =====================
    ADMIN SIDEBAR LAYOUT
 ===================== */

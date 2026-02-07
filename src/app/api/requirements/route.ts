@@ -1,98 +1,178 @@
-import { NextResponse } from 'next/server';
-import db from '@/lib/db';
+import { NextResponse } from "next/server";
+import db from "@/lib/db";
 
-export async function GET() {
-    try {
-        // 1. Fetch official catalog
-        const catalog = db.prepare('SELECT type, value FROM requirements_catalog').all() as { type: string, value: string }[];
-
-        // 2. Fetch unique skills/languages from Staff
-        const staffRows = db.prepare('SELECT other_languages, special_skills, english_proficiency FROM staff').all() as any[];
-
-        const staffSkills = new Set<string>();
-        const staffLanguages = new Set<string>();
-
-        staffRows.forEach(row => {
-            // Languages
-            try {
-                const langs = JSON.parse(row.other_languages || '{}');
-                Object.keys(langs).forEach(l => staffLanguages.add(l));
-            } catch (e) { }
-
-            // Skills
-            try {
-                const skills = JSON.parse(row.special_skills || '[]');
-                if (Array.isArray(skills)) skills.forEach(s => staffSkills.add(s));
-            } catch (e) { }
-
-            // English? Maybe treat as language option "English"
-            if (row.english_proficiency) {
-                // optional: staffLanguages.add(`English (${row.english_proficiency})`);
-            }
-        });
-
-        // 3. Merge
-        const options = [];
-
-        // Add Catalog items
-        catalog.forEach(c => options.push({ ...c, source: 'catalog' }));
-
-        // Add Staff items (avoid duplicates)
-        staffLanguages.forEach(l => {
-            if (!options.find(o => o.type === 'language' && o.value.toLowerCase() === l.toLowerCase())) {
-                options.push({ type: 'language', value: l, source: 'staff' });
-            }
-        });
-
-        staffSkills.forEach(s => {
-            if (!options.find(o => o.type === 'skill' && o.value.toLowerCase() === s.toLowerCase())) {
-                options.push({ type: 'skill', value: s, source: 'staff' });
-            }
-        });
-
-        // 4. Calculate Availability Counts (Internal)
-        // We need to loop again or doing it efficiently?
-        // Let's do a quick pass for internal counts
-        options.forEach((opt: any) => {
-            let count = 0;
-            staffRows.forEach(row => {
-                // Check avail status
-                // if (row.availability_status !== 'available') return; // Strict availability? Or general capability?
-                // Prompt says: "available_internal_count = number of staff (availability_status=available) matching"
-                if ((row.availability_status || 'available') !== 'available') return;
-
-                if (opt.type === 'language') {
-                    const langs = JSON.parse(row.other_languages || '{}');
-                    if (langs[opt.value]) count++;
-                } else if (opt.type === 'skill') {
-                    const skills = JSON.parse(row.special_skills || '[]');
-                    if (skills.includes(opt.value)) count++;
-                }
-            });
-            opt.available_internal = count;
-        });
-
-        return NextResponse.json(options);
-
-    } catch (error) {
-        console.error('Database error:', error);
-        return NextResponse.json({ error: 'Failed to fetch requirements' }, { status: 500 });
-    }
+/* ---------------- SAFE JSON PARSE ---------------- */
+function safeParse<T>(value: any, fallback: T): T {
+  try {
+    if (!value) return fallback;
+    return JSON.parse(value);
+  } catch {
+    return fallback;
+  }
 }
 
-export async function POST(request: Request) {
-    try {
-        const body = await request.json();
-        if (!body.type || !body.value) {
-            return NextResponse.json({ error: 'Type and Value required' }, { status: 400 });
+/* ======================
+   GET /api/requirements
+====================== */
+export async function GET() {
+  try {
+    /* ---------- TABLE SAFETY CHECK ---------- */
+    const tableExists = db
+      .prepare(
+        `SELECT name FROM sqlite_master WHERE type='table' AND name='requirements_catalog'`
+      )
+      .get();
+
+    const catalog: { type: string; value: string }[] = tableExists
+      ? (db
+          .prepare(`SELECT type, value FROM requirements_catalog`)
+          .all() as any[])
+      : [];
+
+    /* ---------- STAFF DATA ---------- */
+    const staffRows = db
+      .prepare(`
+        SELECT 
+          other_languages,
+          special_skills,
+          english_proficiency,
+          availability_status
+        FROM staff
+      `)
+      .all() as any[];
+
+    const staffLanguages = new Set<string>();
+    const staffSkills = new Set<string>();
+
+    /* ---------- COLLECT STAFF SKILLS & LANGUAGES ---------- */
+    staffRows.forEach(row => {
+      const languages = safeParse<Record<string, any>>(
+        row.other_languages,
+        {}
+      );
+      Object.keys(languages).forEach(l => staffLanguages.add(l));
+
+      const skills = safeParse<string[]>(row.special_skills, []);
+      skills.forEach(s => staffSkills.add(s));
+    });
+
+    /* ---------- MERGE OPTIONS ---------- */
+    const options: any[] = [];
+
+    // Catalog first
+    catalog.forEach(c =>
+      options.push({
+        type: c.type,
+        value: c.value,
+        source: "catalog",
+        available_internal: 0
+      })
+    );
+
+    // Staff languages
+    staffLanguages.forEach(lang => {
+      if (
+        !options.find(
+          o =>
+            o.type === "language" &&
+            o.value.toLowerCase() === lang.toLowerCase()
+        )
+      ) {
+        options.push({
+          type: "language",
+          value: lang,
+          source: "staff",
+          available_internal: 0
+        });
+      }
+    });
+
+    // Staff skills
+    staffSkills.forEach(skill => {
+      if (
+        !options.find(
+          o =>
+            o.type === "skill" &&
+            o.value.toLowerCase() === skill.toLowerCase()
+        )
+      ) {
+        options.push({
+          type: "skill",
+          value: skill,
+          source: "staff",
+          available_internal: 0
+        });
+      }
+    });
+
+    /* ---------- CALCULATE AVAILABLE INTERNAL STAFF ---------- */
+    options.forEach(opt => {
+      let count = 0;
+
+      staffRows.forEach(row => {
+        if ((row.availability_status ?? "available") !== "available") return;
+
+        if (opt.type === "language") {
+          const langs = safeParse<Record<string, any>>(
+            row.other_languages,
+            {}
+          );
+          if (langs[opt.value]) count++;
         }
 
-        const stmt = db.prepare('INSERT INTO requirements_catalog (type, value) VALUES (@type, @value)');
-        const result = stmt.run({ type: body.type, value: body.value });
+        if (opt.type === "skill") {
+          const skills = safeParse<string[]>(row.special_skills, []);
+          if (skills.includes(opt.value)) count++;
+        }
+      });
 
-        return NextResponse.json({ id: result.lastInsertRowid, ...body, source: 'catalog', available_internal: 0 }); // assume 0 for new until refresh
-    } catch (error) {
-        // check constraint violation
-        return NextResponse.json({ error: 'Failed to add option (might exist)' }, { status: 500 });
+      opt.available_internal = count;
+    });
+
+    return NextResponse.json(options);
+  } catch (error) {
+    console.error("Requirements API error:", error);
+    // 🔒 NEVER break frontend
+    return NextResponse.json([]);
+  }
+}
+
+/* ======================
+   POST /api/requirements
+====================== */
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+
+    if (!body?.type || !body?.value) {
+      return NextResponse.json(
+        { error: "Type and Value required" },
+        { status: 400 }
+      );
     }
+
+    const stmt = db.prepare(`
+      INSERT INTO requirements_catalog (type, value)
+      VALUES (@type, @value)
+    `);
+
+    const result = stmt.run({
+      type: body.type,
+      value: body.value
+    });
+
+    return NextResponse.json({
+      id: result.lastInsertRowid,
+      type: body.type,
+      value: body.value,
+      source: "catalog",
+      available_internal: 0
+    });
+  } catch (error) {
+    console.error("Requirements POST error:", error);
+    return NextResponse.json(
+      { error: "Failed to add requirement" },
+      { status: 500 }
+    );
+  }
 }

@@ -1,0 +1,80 @@
+import { StaffMember } from '@/types';
+
+/**
+ * Extracts phone number from notes field using the Phone:+971... pattern
+ */
+export function extractPhone(notes: string | undefined | null): string | null {
+    if (!notes) return null;
+    const match = notes.match(/Phone:\s*([+\d\s-]+)/i);
+    return match ? match[1].trim() : null;
+}
+
+/**
+ * Updates or adds phone number to notes field using the Phone:... pattern
+ * Preserves other text in notes.
+ */
+export function updatePhoneInNotes(notes: string | undefined | null, newPhone: string): string {
+    const phoneEntry = `Phone:${newPhone}`;
+    if (!notes) return phoneEntry;
+
+    const phoneRegex = /Phone:\s*[+\d\s-]+/i;
+    if (phoneRegex.test(notes)) {
+        return notes.replace(phoneRegex, phoneEntry);
+    } else {
+        return `${notes}\n${phoneEntry}`.trim();
+    }
+}
+
+/**
+ * Exports staff list to CSV and triggers a browser download
+ */
+export function exportToCSV(staff: StaffMember[], roles: { id: number, name: string }[], venues: { id: number, name: string }[]) {
+    const headers = ['Name', 'Role', 'Home Base', 'English', 'Status', 'Employment Type', 'Phone', 'Notes'];
+
+    const rows = staff.map(s => {
+        const roleName = roles.find(r => r.id === s.primary_role_id)?.name || '-';
+        const venueName = venues.find(v => v.id === s.home_base_venue_id)?.name || '-';
+        const phone = extractPhone(s.notes) || '';
+
+        return [
+            s.full_name,
+            roleName,
+            venueName,
+            s.english_proficiency,
+            s.availability_status,
+            s.employment_type,
+            phone,
+            (s.notes || '').replace(/Phone:.*(\n|$)/i, '').replace(/\n/g, ' ').trim()
+        ].map(val => `"${val.toString().replace(/"/g, '""')}"`).join(',');
+    });
+
+    const csvContent = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute('href', url);
+    link.setAttribute('download', `nara_staff_roster_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+/**
+ * Generates a blank CSV template for staff import
+ */
+export function downloadCSVTemplate() {
+    const headers = ['full_name', 'primary_role_name', 'home_base_venue_name', 'english_proficiency', 'employment_type', 'phone', 'notes'];
+    const example = ['John Doe', 'Waiter', 'Sonara Camp', 'good', 'internal', '+971501234567', 'Friendly and experienced'];
+
+    const csvContent = [headers.join(','), example.join(',')].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+
+    link.setAttribute('href', URL.createObjectURL(blob));
+    link.setAttribute('download', 'nara_staff_template.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}

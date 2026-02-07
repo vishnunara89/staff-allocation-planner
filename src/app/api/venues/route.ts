@@ -23,9 +23,9 @@ export async function POST(request: Request) {
         }
 
         const stmt = db.prepare(`
-      INSERT INTO venues (name, type, default_service_style, notes)
-      VALUES (@name, @type, @default_service_style, @notes)
-    `);
+            INSERT INTO venues (name, type, default_service_style, notes)
+            VALUES (@name, @type, @default_service_style, @notes)
+        `);
 
         const result = stmt.run({
             name: body.name,

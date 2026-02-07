@@ -1,15 +1,28 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, FormEvent } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Venue } from '@/types';
 import styles from './venues.module.css';
 
 export default function VenuesPage() {
+    const router = useRouter();
     const [venues, setVenues] = useState<Venue[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
+
+    // Modal state
+    const [showModal, setShowModal] = useState(false);
+    const [formData, setFormData] = useState({
+        name: '',
+        type: 'camp',
+        default_service_style: 'sharing',
+        notes: ''
+    });
+    const [submitting, setSubmitting] = useState(false);
+    const [formError, setFormError] = useState('');
 
     useEffect(() => {
         fetchVenues();
@@ -47,6 +60,50 @@ export default function VenuesPage() {
         fetchVenues();
     }
 
+    function openModal() {
+        setFormData({ name: '', type: 'camp', default_service_style: 'sharing', notes: '' });
+        setFormError('');
+        setShowModal(true);
+    }
+
+    function closeModal() {
+        setShowModal(false);
+    }
+
+    async function handleSubmit(e: FormEvent) {
+        e.preventDefault();
+
+        if (!formData.name.trim()) {
+            setFormError('Venue name is required');
+            return;
+        }
+
+        setSubmitting(true);
+        setFormError('');
+
+        try {
+            const res = await fetch('/api/venues', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || 'Failed to create venue');
+            }
+
+            const newVenue = await res.json();
+            setShowModal(false);
+            router.push(`/venues/${newVenue.id}`);
+            router.refresh();
+        } catch (err: any) {
+            setFormError(err.message);
+        } finally {
+            setSubmitting(false);
+        }
+    }
+
     const filteredVenues = venues.filter(venue =>
         venue.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         venue.type?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -68,7 +125,7 @@ export default function VenuesPage() {
                         className={styles.searchInput}
                         aria-label="Search venues"
                     />
-                    <Link href="/venues/new" className={styles.primaryButton}>+ Add Venue</Link>
+                    <button onClick={openModal} className={styles.primaryButton}>+ Add Venue</button>
                 </div>
             </div>
 
@@ -109,6 +166,82 @@ export default function VenuesPage() {
                             </div>
                         </Link>
                     ))}
+                </div>
+            )}
+
+            {/* Add Venue Modal */}
+            {showModal && (
+                <div className={styles.modalOverlay} onClick={closeModal}>
+                    <div className={styles.modal} onClick={e => e.stopPropagation()}>
+                        <div className={styles.modalHeader}>
+                            <h2>Add New Venue</h2>
+                            <button className={styles.closeButton} onClick={closeModal}>×</button>
+                        </div>
+
+                        {formError && <div className={styles.modalError}>{formError}</div>}
+
+                        <form onSubmit={handleSubmit} className={styles.modalForm}>
+                            <div className={styles.formGroup}>
+                                <label>Venue Name <span className={styles.required}>*</span></label>
+                                <input
+                                    type="text"
+                                    value={formData.name}
+                                    onChange={e => setFormData({ ...formData, name: e.target.value })}
+                                    placeholder="e.g. Sonara Camp Dubai"
+                                    className={styles.modalInput}
+                                    autoFocus
+                                />
+                            </div>
+
+                            <div className={styles.formRow}>
+                                <div className={styles.formGroup}>
+                                    <label>Venue Type</label>
+                                    <select
+                                        value={formData.type}
+                                        onChange={e => setFormData({ ...formData, type: e.target.value })}
+                                        className={styles.modalSelect}
+                                    >
+                                        <option value="camp">Camp</option>
+                                        <option value="private">Private</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+
+                                <div className={styles.formGroup}>
+                                    <label>Service Style</label>
+                                    <select
+                                        value={formData.default_service_style}
+                                        onChange={e => setFormData({ ...formData, default_service_style: e.target.value })}
+                                        className={styles.modalSelect}
+                                    >
+                                        <option value="sharing">Sharing</option>
+                                        <option value="buffet">Buffet</option>
+                                        <option value="plated">Plated</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className={styles.formGroup}>
+                                <label>Notes</label>
+                                <textarea
+                                    rows={3}
+                                    value={formData.notes}
+                                    onChange={e => setFormData({ ...formData, notes: e.target.value })}
+                                    placeholder="Optional notes about this venue..."
+                                    className={styles.modalTextarea}
+                                />
+                            </div>
+
+                            <div className={styles.modalActions}>
+                                <button type="button" onClick={closeModal} className={styles.cancelButton}>
+                                    Cancel
+                                </button>
+                                <button type="submit" className={styles.submitButton} disabled={submitting}>
+                                    {submitting ? 'Creating...' : 'Create Venue'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             )}
         </div>

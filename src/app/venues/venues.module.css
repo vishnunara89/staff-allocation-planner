@@ -235,3 +235,220 @@
         text-align: center;
     }
 }
+
+/* ===== Add Venue Modal ===== */
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.modal {
+    background: white;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 480px;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
+    animation: scaleUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    transform-origin: center center;
+}
+
+@keyframes scaleUp {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.modalHeader {
+    background: var(--primary-color);
+    padding: 1.5rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modalHeader h2 {
+    margin: 0;
+    color: white;
+    font-size: 1.35rem;
+    font-weight: 600;
+}
+
+.closeButton {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.closeButton:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.modalError {
+    background: #fff5f5;
+    color: #c53030;
+    padding: 0.75rem 2rem;
+    font-size: 0.9rem;
+    border-left: 4px solid #fc8181;
+}
+
+.modalForm {
+    padding: 2rem;
+    box-sizing: border-box;
+    /* Ensure padding doesn't affect width */
+}
+
+.formGroup {
+    margin-bottom: 1.25rem;
+}
+
+.formGroup label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--secondary-color);
+    margin-bottom: 0.5rem;
+}
+
+.required {
+    color: var(--primary-color);
+}
+
+.formRow {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.modalInput,
+.modalSelect,
+.modalTextarea {
+    width: 100%;
+    box-sizing: border-box;
+    /* Fix overflow issues */
+    padding: 0.75rem 1rem;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    background: #fafafa;
+}
+
+.modalInput:focus,
+.modalSelect:focus,
+.modalTextarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(124, 76, 44, 0.15);
+    /* Brown shadow */
+    background: white;
+}
+
+.modalTextarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.modalActions {
+    display: flex;
+    gap: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #eee;
+    margin-top: 0.5rem;
+}
+
+.cancelButton {
+    flex: 1;
+    padding: 0.875rem 1.5rem;
+    border: 1.5px solid #e0e0e0;
+    background: white;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--muted-color);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.cancelButton:hover {
+    border-color: #bbb;
+    color: var(--secondary-color);
+}
+
+.submitButton {
+    flex: 1;
+    padding: 0.875rem 1.5rem;
+    background: var(--primary-color);
+    /* Nara Brown */
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(124, 76, 44, 0.3);
+}
+
+.submitButton:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(124, 76, 44, 0.4);
+}
+
+.submitButton:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+    .modal {
+        max-height: 95vh;
+    }
+
+    .modalForm {
+        padding: 1.5rem;
+    }
+
+    .formRow {
+        grid-template-columns: 1fr;
+    }
+
+    .modalActions {
+        flex-direction: column-reverse;
+    }
+}

@@ -3,7 +3,13 @@
 import { useEffect, useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Venue, StaffingRule, Role } from '@/types';
+import { MANNING_TEMPLATES, ManningTemplate } from '@/lib/manningTemplates';
 import styles from './venue-detail.module.css';
+
+interface ManningConfig {
+    brackets: string[];
+    rows: { role: string; counts: number[] }[];
+}
 
 export default function VenueDetailPage({ params }: { params: { id: string } }) {
     const [venue, setVenue] = useState<Venue | null>(null);
@@ -22,13 +28,18 @@ export default function VenueDetailPage({ params }: { params: { id: string } }) 
     const [activeTab, setActiveTab] = useState<'current' | 'excel'>('current');
     const [deptFilter, setDeptFilter] = useState<string>('all');
     const [searchQuery, setSearchQuery] = useState('');
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(null);
 
-    // Mmoved from below to avoid conditional hook call error
-    const [brackets, setBrackets] = useState<any[]>([]);
-    const [bracketDept, setBracketDept] = useState<string>('service');
-    const [loadingBrackets, setLoadingBrackets] = useState(false);
-    const [saveFeedback, setSaveFeedback] = useState('');
+    // Manning Rules Excel Editor State
+    const [selectedTemplate, setSelectedTemplate] = useState<string>('Custom');
+    const [manningDept, setManningDept] = useState<string>('all');
+    const [manningConfig, setManningConfig] = useState<ManningConfig>({ brackets: ['0-50'], rows: [] });
+    const [savingManning, setSavingManning] = useState(false);
+    const [manningFeedback, setManningFeedback] = useState('');
+    const [availableDepts, setAvailableDepts] = useState<string[]>(['all']);
+
+    const [isEditing, setIsEditing] = useState(false);
+    const [editForm, setEditForm] = useState<Partial<Venue>>({});
+    const router = useRouter();
 
     useEffect(() => {
         Promise.all([
@@ -46,15 +57,137 @@ export default function VenueDetailPage({ params }: { params: { id: string } }) 
         }).finally(() => setLoading(false));
     }, [params.id]);
 
+    // Load saved manning tables when switching to excel tab
     useEffect(() => {
         if (activeTab === 'excel') {
-            loadBrackets();
+            loadManningTables();
         }
-    }, [activeTab, bracketDept, params.id]);
+    }, [activeTab, params.id]);
 
-    const [isEditing, setIsEditing] = useState(false);
-    const [editForm, setEditForm] = useState<Partial<Venue>>({});
-    const router = useRouter();
+    async function loadManningTables() {
+        try {
+            const res = await fetch(`/api/manning-tables?venue_id=${params.id}`);
+            const data = await res.json();
+            if (Array.isArray(data) && data.length > 0) {
+                // Load the first department's config
+                const first = data[0];
+                setManningConfig(first.config);
+                setManningDept(first.department);
+                setSelectedTemplate('Custom'); // Saved data = custom
+            }
+        } catch (err) {
+            console.error('Failed to load manning tables:', err);
+        }
+    }
+
+    function handleLoadTemplate() {
+        const template = MANNING_TEMPLATES.find(t => t.name === selectedTemplate);
+        if (!template) return;
+
+        setAvailableDepts(template.departments);
+        const firstDept = template.departments[0];
+        setManningDept(firstDept);
+        setManningConfig(template.configs[firstDept]);
+    }
+
+    function handleDeptChange(dept: string) {
+        setManningDept(dept);
+        const template = MANNING_TEMPLATES.find(t => t.name === selectedTemplate);
+        if (template && template.configs[dept]) {
+            setManningConfig(template.configs[dept]);
+        }
+    }
+
+    async function handleSaveManning() {
+        setSavingManning(true);
+        setManningFeedback('');
+        try {
+            const res = await fetch('/api/manning-tables', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    venue_id: Number(params.id),
+                    department: manningDept,
+                    config: manningConfig
+                })
+            });
+            const data = await res.json();
+            if (data.error) throw new Error(data.error);
+            setManningFeedback('Saved!');
+            setTimeout(() => setManningFeedback(''), 3000);
+        } catch (err) {
+            setManningFeedback('Failed to save');
+        } finally {
+            setSavingManning(false);
+        }
+    }
+
+    function updateCell(rowIndex: number, colIndex: number, value: number) {
+        const newConfig = { ...manningConfig };
+        newConfig.rows = [...newConfig.rows];
+        newConfig.rows[rowIndex] = {
+            ...newConfig.rows[rowIndex],
+            counts: [...newConfig.rows[rowIndex].counts]
+        };
+        newConfig.rows[rowIndex].counts[colIndex] = value;
+        setManningConfig(newConfig);
+    }
+
+    function updateRoleName(rowIndex: number, name: string) {
+        const newConfig = { ...manningConfig };
+        newConfig.rows = [...newConfig.rows];
+        newConfig.rows[rowIndex] = { ...newConfig.rows[rowIndex], role: name };
+        setManningConfig(newConfig);
+    }
+
+    function addRole() {
+        const newConfig = { ...manningConfig };
+        newConfig.rows = [...newConfig.rows, {
+            role: 'New Role',
+            counts: new Array(newConfig.brackets.length).fill(0)
+        }];
+        setManningConfig(newConfig);
+    }
+
+    function removeRole(index: number) {
+        if (!confirm('Remove this role?')) return;
+        const newConfig = { ...manningConfig };
+        newConfig.rows = newConfig.rows.filter((_, i) => i !== index);
+        setManningConfig(newConfig);
+    }
+
+    function addBracket() {
+        const lastBracket = manningConfig.brackets[manningConfig.brackets.length - 1] || '0-50';
+        const parts = lastBracket.split('-');
+        const lastMax = parseInt(parts[1]) || 50;
+        const newBracket = `${lastMax}-${lastMax + 50}`;
+
+        const newConfig = { ...manningConfig };
+        newConfig.brackets = [...newConfig.brackets, newBracket];
+        newConfig.rows = newConfig.rows.map(row => ({
+            ...row,
+            counts: [...row.counts, 0]
+        }));
+        setManningConfig(newConfig);
+    }
+
+    function removeBracket(index: number) {
+        if (!confirm('Remove this PAX bracket?')) return;
+        const newConfig = { ...manningConfig };
+        newConfig.brackets = newConfig.brackets.filter((_, i) => i !== index);
+        newConfig.rows = newConfig.rows.map(row => ({
+            ...row,
+            counts: row.counts.filter((_, i) => i !== index)
+        }));
+        setManningConfig(newConfig);
+    }
+
+    function updateBracket(index: number, value: string) {
+        const newConfig = { ...manningConfig };
+        newConfig.brackets = [...newConfig.brackets];
+        newConfig.brackets[index] = value;
+        setManningConfig(newConfig);
+    }
 
     async function handleUpdateVenue(e: FormEvent) {
         e.preventDefault();
@@ -104,7 +237,7 @@ export default function VenueDetailPage({ params }: { params: { id: string } }) 
 
             setRules([...rules, savedRule]);
             setShowAddRule(false);
-            setNewRule({ department: 'service', ratio_guests: 10, ratio_staff: 1 }); // reset
+            setNewRule({ department: 'service', ratio_guests: 10, ratio_staff: 1 });
         } catch (err) {
             alert('Failed to save rule');
             console.error(err);
@@ -137,83 +270,6 @@ export default function VenueDetailPage({ params }: { params: { id: string } }) 
     if (loading) return <div className={styles.loading}>Loading venue details...</div>;
     if (error) return <div className={styles.error}>{error}</div>;
     if (!venue) return <div className={styles.error}>Venue not found</div>;
-
-    async function loadBrackets() {
-        setLoadingBrackets(true);
-        try {
-            const res = await fetch(`/api/manning-brackets?venue_id=${params.id}&department=${bracketDept}`);
-            const data = await res.json();
-            if (Array.isArray(data)) {
-                setBrackets(data);
-            } else {
-                setBrackets([]);
-            }
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoadingBrackets(false);
-        }
-    }
-
-    function handleAddBracket() {
-        const lastMax = brackets.length > 0 ? brackets[brackets.length - 1].guest_max : 0;
-        setBrackets([
-            ...brackets,
-            {
-                guest_min: lastMax + 1,
-                guest_max: lastMax + 20,
-                counts: {},
-                notes: ''
-            }
-        ]);
-    }
-
-    function updateBracket(index: number, field: string, value: any, roleId?: number) {
-        const newBrackets = [...brackets];
-        if (roleId !== undefined) {
-            const counts = { ...(newBrackets[index].counts || {}) };
-            counts[roleId] = Number(value);
-            newBrackets[index] = { ...newBrackets[index], counts };
-        } else {
-            newBrackets[index] = { ...newBrackets[index], [field]: value };
-        }
-        setBrackets(newBrackets);
-    }
-
-    function removeBracket(index: number) {
-        setBrackets(brackets.filter((_, i) => i !== index));
-    }
-
-    async function handleSaveBrackets() {
-        setSaveFeedback('Saving...');
-        try {
-            const res = await fetch('/api/manning-brackets', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    venue_id: Number(params.id),
-                    department: bracketDept,
-                    brackets: brackets
-                })
-            });
-            const data = await res.json();
-            if (data.error) throw new Error(data.error);
-            setSaveFeedback('Saved successfully!');
-            setTimeout(() => setSaveFeedback(''), 3000);
-        } catch (err) {
-            alert('Failed to save brackets');
-            setSaveFeedback('');
-        }
-    }
-
-    const deptRoles = roles.filter(r => {
-        const cat = r.category?.toLowerCase() || 'other';
-        const dept = bracketDept.toLowerCase();
-        return dept === 'all' || cat.includes(dept) || (dept === 'service' && cat === 'service') || (dept === 'bar' && cat === 'bar');
-    });
-
-    // Fallback: if no roles found for category, show all or show warning
-    const safeDeptRoles = deptRoles.length > 0 ? deptRoles : roles;
 
     return (
         <div className={styles.container}>
@@ -273,7 +329,7 @@ export default function VenueDetailPage({ params }: { params: { id: string } }) 
                         className={`${styles.tab} ${activeTab === 'excel' ? styles.activeTab : ''}`}
                         onClick={() => setActiveTab('excel')}
                     >
-                        Excel Rules (Pax Brackets)
+                        Manning Rules (Excel)
                     </button>
                 </div>
             </header>
@@ -281,7 +337,6 @@ export default function VenueDetailPage({ params }: { params: { id: string } }) 
             <div className={styles.content}>
                 {activeTab === 'current' ? (
                     <div className={styles.rulesWorkspace}>
-                        {/* ... Existing Rules Table ... */}
                         <div className={styles.controlsToolbar}>
                             <div className={styles.filters}>
                                 <select
@@ -346,97 +401,114 @@ export default function VenueDetailPage({ params }: { params: { id: string } }) 
                         </div>
                     </div>
                 ) : (
-                    <div className={styles.bracketsEditor}>
-                        <div className={styles.editorHeader}>
-                            <div className={styles.deptSwitcher}>
-                                <label>Department:</label>
+                    <div className={styles.manningEditor}>
+                        {/* Header with template selector */}
+                        <div className={styles.manningHeader}>
+                            <div className={styles.templateSelector}>
+                                <label>Template:</label>
                                 <select
-                                    value={bracketDept}
-                                    onChange={e => setBracketDept(e.target.value)}
+                                    value={selectedTemplate}
+                                    onChange={e => setSelectedTemplate(e.target.value)}
                                     className={styles.select}
-                                    style={{ width: 'auto' }}
                                 >
-                                    <option value="service">Service</option>
-                                    <option value="bar">Bar</option>
-                                    <option value="management">Management</option>
-                                    <option value="housekeeping">Housekeeping</option>
-                                    <option value="kitchen">Kitchen</option>
+                                    {MANNING_TEMPLATES.map(t => (
+                                        <option key={t.name} value={t.name}>{t.name}</option>
+                                    ))}
                                 </select>
+                                <button onClick={handleLoadTemplate} className={styles.buttonSecondary}>
+                                    Load Template
+                                </button>
                             </div>
-                            <div>
-                                {saveFeedback && <span className={styles.bracketFeedback}>{saveFeedback}</span>}
+                            <div className={styles.manningActions}>
+                                {manningFeedback && <span className={styles.feedback}>{manningFeedback}</span>}
+                                <button
+                                    onClick={handleSaveManning}
+                                    className={styles.buttonPrimary}
+                                    disabled={savingManning}
+                                >
+                                    {savingManning ? 'Saving...' : 'Save Rules'}
+                                </button>
                             </div>
                         </div>
 
-                        {loadingBrackets ? (
-                            <div className={styles.loading}>Loading brackets...</div>
-                        ) : (
-                            <div className={styles.tableContainer}>
-                                <table className={styles.bracketsTable}>
-                                    <thead>
-                                        <tr>
-                                            <th style={{ width: '80px' }}>Min Pax</th>
-                                            <th style={{ width: '80px' }}>Max Pax</th>
-                                            {safeDeptRoles.map(r => (
-                                                <th key={r.id}>{r.name}</th>
-                                            ))}
-                                            <th>Notes</th>
-                                            <th style={{ width: '50px' }}></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {brackets.map((bracket, index) => (
-                                            <tr key={index}>
-                                                <td>
-                                                    <input
-                                                        type="number"
-                                                        className={styles.inputSmall}
-                                                        value={bracket.guest_min}
-                                                        onChange={e => updateBracket(index, 'guest_min', e.target.value)}
-                                                    />
-                                                </td>
-                                                <td>
-                                                    <input
-                                                        type="number"
-                                                        className={styles.inputSmall}
-                                                        value={bracket.guest_max}
-                                                        onChange={e => updateBracket(index, 'guest_max', e.target.value)}
-                                                    />
-                                                </td>
-                                                {safeDeptRoles.map(r => (
-                                                    <td key={r.id}>
-                                                        <input
-                                                            type="number"
-                                                            className={styles.inputSmall}
-                                                            value={bracket.counts?.[r.id] || 0}
-                                                            onChange={e => updateBracket(index, 'counts', e.target.value, r.id)}
-                                                            style={{ backgroundColor: (bracket.counts?.[r.id] > 0) ? '#e3f2fd' : 'white' }}
-                                                        />
-                                                    </td>
-                                                ))}
-                                                <td>
-                                                    <input
-                                                        type="text"
-                                                        className={styles.inputNote}
-                                                        value={bracket.notes || ''}
-                                                        placeholder="Optional notes"
-                                                        onChange={e => updateBracket(index, 'notes', e.target.value)}
-                                                    />
-                                                </td>
-                                                <td>
-                                                    <button onClick={() => removeBracket(index)} className={styles.deleteBtn}>×</button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-
-                                <div className={styles.editorFooter}>
-                                    <button onClick={handleAddBracket} className={styles.buttonSecondary}>+ Add Pax Range</button>
-                                    <button onClick={handleSaveBrackets} className={styles.buttonPrimary}>Save Changes</button>
-                                </div>
+                        {/* Department tabs */}
+                        {availableDepts.length > 1 && (
+                            <div className={styles.deptTabs}>
+                                {availableDepts.map(dept => (
+                                    <button
+                                        key={dept}
+                                        className={`${styles.deptTab} ${manningDept === dept ? styles.activeDeptTab : ''}`}
+                                        onClick={() => handleDeptChange(dept)}
+                                    >
+                                        {dept.charAt(0).toUpperCase() + dept.slice(1)}
+                                    </button>
+                                ))}
                             </div>
                         )}
+
+                        {/* Excel-like grid */}
+                        <div className={styles.excelGridContainer}>
+                            <table className={styles.excelGrid}>
+                                <thead>
+                                    <tr>
+                                        <th className={styles.stickyCol}>Role</th>
+                                        {manningConfig.brackets.map((bracket, idx) => (
+                                            <th key={idx} className={styles.bracketHeader}>
+                                                <input
+                                                    type="text"
+                                                    value={bracket}
+                                                    onChange={e => updateBracket(idx, e.target.value)}
+                                                    className={styles.bracketInput}
+                                                />
+                                                <button
+                                                    onClick={() => removeBracket(idx)}
+                                                    className={styles.removeBracketBtn}
+                                                    title="Remove bracket"
+                                                >×</button>
+                                            </th>
+                                        ))}
+                                        <th>
+                                            <button onClick={addBracket} className={styles.addBracketBtn}>+ PAX</button>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {manningConfig.rows.map((row, rowIdx) => (
+                                        <tr key={rowIdx}>
+                                            <td className={styles.stickyCol}>
+                                                <input
+                                                    type="text"
+                                                    value={row.role}
+                                                    onChange={e => updateRoleName(rowIdx, e.target.value)}
+                                                    className={styles.roleInput}
+                                                />
+                                                <button
+                                                    onClick={() => removeRole(rowIdx)}
+                                                    className={styles.removeRoleBtn}
+                                                    title="Remove role"
+                                                >×</button>
+                                            </td>
+                                            {row.counts.map((count, colIdx) => (
+                                                <td key={colIdx}>
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        value={count}
+                                                        onChange={e => updateCell(rowIdx, colIdx, parseInt(e.target.value) || 0)}
+                                                        className={styles.countInput}
+                                                    />
+                                                </td>
+                                            ))}
+                                            <td></td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div className={styles.gridActions}>
+                            <button onClick={addRole} className={styles.buttonSecondary}>+ Add Role</button>
+                        </div>
                     </div>
                 )}
             </div>
@@ -459,7 +531,6 @@ export default function VenueDetailPage({ params }: { params: { id: string } }) 
                                     <option value="management">Management</option>
                                 </select>
                             </div>
-                            {/* ... reuse existing form fields ... */}
                             <div className={styles.formGroup}>
                                 <label>Role</label>
                                 <select

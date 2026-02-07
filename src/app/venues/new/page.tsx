@@ -27,7 +27,7 @@ export default function NewVenuePage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
             });
-            
+
             if (!res.ok) {
                 const data = await res.json();
                 throw new Error(data.error || 'Failed to create venue');
@@ -96,8 +96,8 @@ export default function NewVenuePage() {
                     />
                 </div>
 
-                <button 
-                    type="submit" 
+                <button
+                    type="submit"
                     className={styles.buttonPrimary}
                     disabled={submitting}
                 >

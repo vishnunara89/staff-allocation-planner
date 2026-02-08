@@ -10,11 +10,14 @@
   /* Nara Beige - Highlights */
   --text-color: #24221C;
   --bg-color: #F8F8F6;
+  --surface-color: #FAFAF9;
   --card-bg: #FFFFFF;
+  --card-hover-shadow: 0 20px 40px -4px rgba(0, 0, 0, 0.08);
   --muted-color: #948C88;
-  --border-color: #E0E0E0;
+  --border-color: #E6E6E5;
   --success-color: #3f7f5f;
-  --danger-color: #b91c1c;
+  --danger-color: #9B2C2C;
+  /* Softer, deep red */
 }
 
 h1,

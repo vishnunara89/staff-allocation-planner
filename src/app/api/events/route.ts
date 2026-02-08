@@ -19,7 +19,11 @@ export async function GET(request: Request) {
         if (date) {
             query += ' AND e.date = ?';
             params.push(date);
+        } else if (searchParams.get('from_date')) {
+            query += ' AND e.date >= ?';
+            params.push(searchParams.get('from_date'));
         }
+
         if (venueId) {
             query += ' AND e.venue_id = ?';
             params.push(venueId);

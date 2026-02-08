@@ -57,6 +57,7 @@ export interface Event {
     priority: 'low' | 'normal' | 'high';
     start_time?: string; // HH:MM
     end_time?: string; // HH:MM
+    venue_name?: string; // Joined from venues table
 }
 
 export type CreateEventDTO = Omit<Event, 'id'>;

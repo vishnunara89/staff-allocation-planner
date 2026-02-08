@@ -140,6 +140,16 @@ export default function EventModal({
                                 </div>
                             </div>
                             <div className={styles.formGroup}>
+                                <label>Event Date</label>
+                                <input
+                                    className={styles.formInput}
+                                    type="date"
+                                    required
+                                    value={formData.date || selectedDate}
+                                    onChange={e => setFormData({ ...formData, date: e.target.value })}
+                                />
+                            </div>
+                            <div className={styles.formGroup}>
                                 <label>Start Time</label>
                                 <PremiumTimePicker
                                     value={formData.start_time || '18:00'}

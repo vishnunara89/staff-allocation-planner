@@ -1,6 +1,22 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 
+export async function GET() {
+    try {
+        // Get distinct plans by date and venue
+        const plans = db.prepare(`
+            SELECT DISTINCT event_date, venue_id, status, count(*) as staff_count 
+            FROM staffing_plans 
+            GROUP BY event_date, venue_id
+        `).all();
+
+        return NextResponse.json(plans);
+    } catch (error) {
+        console.error('Fetch plans error:', error);
+        return NextResponse.json({ error: 'Failed to fetch plans' }, { status: 500 });
+    }
+}
+
 export async function POST(request: Request) {
     try {
         const { date, venue_id, assignments } = await request.json();

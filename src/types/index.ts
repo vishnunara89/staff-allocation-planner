@@ -72,3 +72,35 @@ export interface ManningBracketRow {
     notes?: string;
     source?: 'manual' | 'excel';
 }
+
+export interface PlanAssignment {
+    role_id: number;
+    role_name: string;
+    staff_id: number;
+    staff_name: string;
+    status: 'confirmed' | 'pending' | 'declined';
+    shift_start?: string;
+    shift_end?: string;
+    is_freelance: boolean;
+}
+
+export interface PlanRequirement {
+    role_id: number;
+    role_name: string;
+    count: number;
+    filled: number;
+    assignments: PlanAssignment[];
+}
+
+export interface Plan {
+    id?: number;
+    event_id: number;
+    event_date: string;
+    venue_name: string;
+    guest_count: number;
+    requirements: PlanRequirement[];
+    total_staff: number;
+    total_freelancers: number;
+    status: 'draft' | 'finalized';
+    created_at?: string;
+}

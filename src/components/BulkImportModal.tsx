@@ -16,8 +16,10 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const CSV_TEMPLATE = `full_name,primary_role,secondary_roles,english_proficiency,other_languages,special_skills,experience_tags,home_base_venue,employment_type,availability_status,notes
-John Doe,Waiter,"Bartender",fluent,"French,Spanish","First Aid",,Sonara Camp,full_time,available,
-Jane Smith,Bartender,,intermediate,Russian,,Sommelier,,freelance,available,`;
+John Doe,Server,Bartender,fluent,"French,Spanish","First Aid,VIP Service",,Sonara Camp,internal,available,Experienced server
+Jane Smith,Bartender,,good,Russian,"Sommelier,Mixology",,Desert Rose,internal,available,
+Ahmed Ali,Manager,,fluent,"Arabic,French",Leadership,,Sonara Camp,internal,available,5 years experience
+Maria Garcia,Server,,intermediate,Spanish,,,Desert Rose,freelance,available,Part-time availability`;
 
     const downloadTemplate = () => {
         const blob = new Blob([CSV_TEMPLATE], { type: 'text/csv' });

@@ -1,178 +1,402 @@
+"use strict";
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { Event, Venue, Role, Plan, PlanAssignment, StaffMember, StaffingRule } from '@/types';
 import styles from './plans.module.css';
-
-interface PlanResult {
-    date: string;
-    requirements: any[];
-    assignments: any[];
-    shortages: any[];
-    message?: string;
-}
+import eventStyles from '../events/events.module.css';
+import NewPlanModal from '@/components/NewPlanModal';
+import GeneratedPlanView from '@/components/GeneratedPlanView';
+import Link from 'next/link';
 
 export default function PlansPage() {
-    const searchParams = useSearchParams();
-    const urlDate = searchParams.get('date');
+    const [view, setView] = useState<'list' | 'generated'>('list');
+    const [filterStatus, setFilterStatus] = useState<'all' | 'generated' | 'not_generated'>('all');
+    const [events, setEvents] = useState<Event[]>([]);
+    const [venues, setVenues] = useState<Venue[]>([]);
+    const [roles, setRoles] = useState<Role[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [currentPlan, setCurrentPlan] = useState<Plan | null>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [existingPlans, setExistingPlans] = useState<Set<string>>(new Set());
 
-    const [date, setDate] = useState(urlDate || new Date().toISOString().split('T')[0]);
-    const [plan, setPlan] = useState<PlanResult | null>(null);
-    const [loading, setLoading] = useState(false);
+    // Filter states
+    const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
-        if (urlDate) {
-            setDate(urlDate);
-        }
-    }, [urlDate]);
+        fetchData();
 
-    async function generatePlan() {
+        // Handle deep link from Events page
+        const params = new URLSearchParams(window.location.search);
+        const autoDate = params.get('date');
+        if (autoDate && events.length > 0) {
+            const linkedEvent = events.find(e => e.date === autoDate);
+            if (linkedEvent) {
+                handleGeneratePlan(linkedEvent);
+            }
+        }
+    }, [events.length]); // Re-run when events are loaded
+
+    async function fetchData() {
         setLoading(true);
         try {
-            const res = await fetch('/api/plans/generate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ date })
-            });
-            const data = await res.json();
-            setPlan(data);
-        } catch (err) {
-            console.error(err);
-            alert('Failed to generate plan');
+            const [eventsRes, venuesRes, plansRes, rolesRes] = await Promise.all([
+                fetch('/api/events'),
+                fetch('/api/venues'),
+                fetch('/api/plans'),
+                fetch('/api/roles')
+            ]);
+
+            if (eventsRes.ok && venuesRes.ok && rolesRes.ok) {
+                const eventsData = await eventsRes.json();
+                const venuesData = await venuesRes.json();
+                const rolesData = await rolesRes.json();
+                setRoles(rolesData);
+
+                // Process plans
+                if (plansRes.ok) {
+                    const plansData = await plansRes.json();
+                    const plansSet = new Set<string>();
+                    plansData.forEach((p: any) => plansSet.add(`${p.event_date}_${p.venue_id}`));
+                    setExistingPlans(plansSet);
+                }
+                // Sort events by date
+                eventsData.sort((a: Event, b: Event) => new Date(a.date).getTime() - new Date(b.date).getTime());
+                setEvents(eventsData);
+                setVenues(venuesData);
+            }
+        } catch (error) {
+            console.error('Error fetching data:', error);
         } finally {
             setLoading(false);
         }
     }
 
-    async function savePlan() {
-        if (!plan) return;
-        if (!confirm('Save and confirm this plan? Previous plans for this date will be overwritten.')) return;
-
+    const handleGeneratePlan = async (event: Event) => {
+        // MVP Logic: Generate plan client-side (mocking the complex backend logic for now)
+        setLoading(true);
         try {
-            const res = await fetch('/api/plans', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    date: plan.date,
-                    assignments: plan.assignments
-                })
+            // 1. Fetch Staff and Rules
+            const [staffRes, rulesRes] = await Promise.all([
+                fetch('/api/staff'),
+                fetch('/api/rules')
+            ]);
+
+            const staffList: StaffMember[] = await staffRes.json();
+            const rulesList: StaffingRule[] = await rulesRes.json();
+
+            // 2. Determine Requirements based on Rules
+            const eventRules = rulesList.filter(r => r.venue_id === event.venue_id);
+            const requirements = eventRules.map(rule => {
+                const count = Math.ceil(event.guest_count / rule.ratio_guests); // Simplified ratio logic
+                const roleName = getRoleName(rule.role_id);
+                return {
+                    role_id: rule.role_id,
+                    role_name: roleName,
+                    count: count,
+                    filled: 0,
+                    assignments: [] as PlanAssignment[]
+                };
             });
-            if (res.ok) {
-                alert('Plan saved successfully!');
-            } else {
-                alert('Failed to save plan');
+
+            // 3. Assign Staff (Greedy Algorithm for MVP)
+            let assignedStaffIds = new Set<number>();
+
+
+            // Helper to find staff
+            const findStaff = (roleId: number, count: number, reqIndex: number) => {
+                let needed = count;
+                // a. Prioritize Home Base
+                const homeBaseStaff = staffList.filter(s =>
+                    !assignedStaffIds.has(s.id) &&
+                    s.home_base_venue_id === event.venue_id &&
+                    (s.primary_role_id === roleId || s.secondary_roles.includes(roleId))
+                );
+
+                for (const staff of homeBaseStaff) {
+                    if (needed <= 0) break;
+                    assignedStaffIds.add(staff.id);
+                    requirements[reqIndex].assignments.push({
+                        role_id: roleId,
+                        role_name: requirements[reqIndex].role_name,
+                        staff_id: staff.id,
+                        staff_name: staff.full_name,
+                        status: 'pending',
+                        is_freelance: false
+                    });
+                    needed--;
+                }
+
+                // b. Other Internal Staff
+                if (needed > 0) {
+                    const otherStaff = staffList.filter(s =>
+                        !assignedStaffIds.has(s.id) &&
+                        (s.primary_role_id === roleId || s.secondary_roles.includes(roleId))
+                    );
+
+                    for (const staff of otherStaff) {
+                        if (needed <= 0) break;
+                        assignedStaffIds.add(staff.id);
+                        requirements[reqIndex].assignments.push({
+                            role_id: roleId,
+                            role_name: requirements[reqIndex].role_name,
+                            staff_id: staff.id,
+                            staff_name: staff.full_name,
+                            status: 'pending',
+                            is_freelance: false
+                        });
+                        needed--;
+                    }
+                }
+
+                // c. Freelancers
+                while (needed > 0) {
+                    requirements[reqIndex].assignments.push({
+                        role_id: roleId,
+                        role_name: requirements[reqIndex].role_name,
+                        staff_id: -Math.random(), // Temp ID
+                        staff_name: 'Freelancer Needed',
+                        status: 'pending',
+                        is_freelance: true
+                    });
+                    needed--;
+                }
+            };
+
+            requirements.forEach((req, idx) => {
+                findStaff(req.role_id, req.count, idx);
+            });
+
+            const newPlan: Plan = {
+                event_id: event.id,
+                event_date: event.date,
+                venue_name: getVenueName(event.venue_id),
+                guest_count: event.guest_count,
+                requirements: requirements,
+                total_staff: requirements.reduce((acc, r) => acc + r.assignments.length, 0),
+                total_freelancers: requirements.reduce((acc, r) => acc + r.assignments.filter(a => a.is_freelance).length, 0),
+                status: 'draft'
+            };
+
+            // 4. Save to Database for persistence
+            try {
+                await fetch('/api/plans', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        date: event.date,
+                        venue_id: event.venue_id,
+                        assignments: requirements.flatMap(r => r.assignments).map(a => ({
+                            staff_id: a.staff_id > 0 ? a.staff_id : null,
+                            role_id: a.role_id,
+                            venue_id: event.venue_id,
+                            reason: 'Auto-generated'
+                        }))
+                    })
+                });
+            } catch (saveError) {
+                console.error('Failed to persist plan:', saveError);
             }
-        } catch (err) {
-            console.error(err);
-            alert('Error saving plan');
+
+            setCurrentPlan(newPlan);
+
+            // 5. Update local state to reflect the new plan immediately
+            const planKey = `${event.date}_${event.venue_id}`;
+            console.log('Generating plan for key:', planKey);
+
+            const newSet = new Set(existingPlans);
+            newSet.add(planKey);
+            setExistingPlans(newSet);
+
+            setView('generated');
+            setIsModalOpen(false);
+
+        } catch (e) {
+            console.error('Plan generation failed', e);
+            alert('Failed to generate plan. Please try again.');
+        } finally {
+            setLoading(false);
         }
+    };
+
+    // Helper mappings
+    const getVenueName = (id: number) => venues.find(v => v.id === id)?.name || 'Unknown Venue';
+    const getRoleName = (id: number) => {
+        return roles.find(r => r.id === id)?.name || 'Staff';
+    };
+
+    function formatTimeDisplay(timeStr?: string) {
+        if (!timeStr) return 'TBD';
+        const [h, m] = timeStr.split(':');
+        const date = new Date();
+        date.setHours(Number(h));
+        date.setMinutes(Number(m));
+        return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
     }
+
+    const filteredEvents = events.filter(e => {
+        const venue = getVenueName(e.venue_id).toLowerCase();
+        const matchesSearch = venue.includes(searchTerm.toLowerCase());
+
+        if (!matchesSearch) return false;
+
+        const hasPlan = existingPlans.has(`${e.date}_${e.venue_id}`);
+        if (filterStatus === 'generated') return hasPlan;
+        if (filterStatus === 'not_generated') return !hasPlan;
+
+        return true;
+    });
+
+    // Sub-components for List View
+    const renderListView = () => (
+        <>
+            <div className={styles.header}>
+                <div>
+                    <h2>Staffing Plans</h2>
+                    <p style={{ color: '#64748b' }}>Manage staffing for upcoming events</p>
+                </div>
+                <div className={styles.controls}>
+                    <button className={styles.buttonPrimary} onClick={() => setIsModalOpen(true)}>
+                        + New Plan
+                    </button>
+                </div>
+            </div>
+
+            {/* Filter Bar */}
+            <div className={eventStyles.filterBar} style={{ marginBottom: '2rem' }}>
+                <div className={eventStyles.searchWrapper} style={{ flex: 1 }}>
+                    <span className={eventStyles.searchIcon}>🔍</span>
+                    <input
+                        type="text"
+                        placeholder="Search plans by venue..."
+                        className={eventStyles.searchInput}
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+
+                <div className={eventStyles.viewToggle}>
+                    <button
+                        className={`${eventStyles.toggleBtn} ${filterStatus === 'all' ? eventStyles.active : ''}`}
+                        onClick={() => setFilterStatus('all')}
+                    >
+                        All
+                    </button>
+                    <button
+                        className={`${eventStyles.toggleBtn} ${filterStatus === 'generated' ? eventStyles.active : ''}`}
+                        onClick={() => setFilterStatus('generated')}
+                    >
+                        Generated
+                    </button>
+                    <button
+                        className={`${eventStyles.toggleBtn} ${filterStatus === 'not_generated' ? eventStyles.active : ''}`}
+                        onClick={() => setFilterStatus('not_generated')}
+                    >
+                        Not Generated
+                    </button>
+                </div>
+            </div>
+
+            {/* Events Grid */}
+            <div className={eventStyles.eventsList}>
+                {filteredEvents.map(event => (
+                    <div key={event.id} className={eventStyles.eventCard}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                            <div className={eventStyles.eventTime}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                                </svg>
+                                {formatTimeDisplay(event.start_time)} — {formatTimeDisplay(event.end_time)}
+                            </div>
+                            <div style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 500 }}>
+                                {new Date(event.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                            </div>
+                        </div>
+
+                        <div className={eventStyles.eventInfo}>
+                            <div className={eventStyles.venueName}>{getVenueName(event.venue_id)}</div>
+                            <div className={eventStyles.guestCount}>
+                                👤 <strong>{event.guest_count}</strong> Guests expected
+                            </div>
+
+                            {/* Plan Status Badge */}
+                            {(() => {
+                                const key = `${event.date}_${event.venue_id}`;
+                                const hasPlan = existingPlans.has(key);
+                                return hasPlan ? (
+                                    <div style={{
+                                        display: 'inline-block',
+                                        padding: '0.25rem 0.75rem',
+                                        borderRadius: '8px',
+                                        fontSize: '0.8rem',
+                                        fontWeight: 600,
+                                        background: '#ecfdf5',
+                                        color: '#047857', // Green
+                                        marginTop: '1rem',
+                                        border: '1px solid #a7f3d0',
+                                        width: 'fit-content'
+                                    }}>
+                                        ✓ Plan Generated
+                                    </div>
+                                ) : (
+                                    <div style={{
+                                        display: 'inline-block',
+                                        padding: '0.25rem 0.75rem',
+                                        borderRadius: '8px',
+                                        fontSize: '0.8rem',
+                                        fontWeight: 600,
+                                        background: '#f1f5f9',
+                                        color: '#64748b',
+                                        marginTop: '1rem',
+                                        border: '1px solid #e2e8f0',
+                                        width: 'fit-content'
+                                    }}>
+                                        • Plan Not Generated
+                                    </div>
+                                );
+                            })()}
+                        </div>
+
+                        <div className={eventStyles.cardActions}>
+                            <button
+                                className={styles.buttonPrimary}
+                                style={{ width: '100%', justifyContent: 'center', display: 'flex' }}
+                                onClick={() => handleGeneratePlan(event)}
+                            >
+                                Generate Plan →
+                            </button>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {filteredEvents.length === 0 && !loading && (
+                <div className={styles.emptyState}>
+                    No events found to plan for.
+                </div>
+            )}
+        </>
+    );
 
     return (
         <div className={styles.container}>
-            <header className={styles.header}>
-                <h2>Daily Staffing Plan</h2>
-                <div className={styles.controls}>
-                    <input
-                        type="date"
-                        value={date}
-                        onChange={e => setDate(e.target.value)}
-                        className={styles.dateInput}
-                    />
-                    <button onClick={generatePlan} className={styles.buttonPrimary} disabled={loading}>
-                        {loading ? 'Generating...' : 'Generate Plan'}
-                    </button>
-                    {plan && (
-                        <button onClick={savePlan} className={styles.buttonSecondary} style={{ marginLeft: '1rem' }}>
-                            Save Plan
-                        </button>
-                    )}
-                </div>
-            </header>
+            {view === 'list' && renderListView()}
 
-            {plan && (
-                <div className={styles.results}>
-                    {plan.message && <div className={styles.message}>{plan.message}</div>}
-
-                    {/* Defensive check for error response or missing data */}
-                    {!plan.requirements && !plan.message && (
-                        <div className="error">Failed to load plan data properly. Please check inputs.</div>
-                    )}
-
-                    {(plan.requirements && plan.requirements.length > 0) ? (
-                        <>
-                            <section className={styles.section}>
-                                <h3>Staffing Requirements</h3>
-                                <table className={styles.table}>
-                                    <thead>
-                                        <tr>
-                                            <th>Venue</th>
-                                            <th>Role</th>
-                                            <th>Count</th>
-                                            <th>Reasoning</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {plan.requirements.map((req: any, i: number) => (
-                                            <tr key={i}>
-                                                <td>{req.venue_name}</td>
-                                                <td>{req.role_name}</td>
-                                                <td>{req.count}</td>
-                                                <td className={styles.reason}>{req.reasoning ? req.reasoning.join(', ') : ''}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </section>
-
-                            <section className={styles.section}>
-                                <h3>Assignments</h3>
-                                <table className={styles.table}>
-                                    <thead>
-                                        <tr>
-                                            <th>Venue</th>
-                                            <th>Role</th>
-                                            <th>Staff</th>
-                                            <th>Status</th>
-                                            <th>Basis</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {plan.assignments && plan.assignments.map((assign: any, i: number) => (
-                                            <tr key={i}>
-                                                <td>{plan.requirements.find(r => r.venue_id === assign.venue_id)?.venue_name || '-'}</td>
-                                                <td>{plan.requirements.find(r => r.role_id === assign.role_id)?.role_name || '-'}</td>
-                                                <td>{assign.staff_name}</td>
-                                                <td>
-                                                    <span className={`${styles.status} ${styles[assign.status]}`}>
-                                                        {assign.status}
-                                                    </span>
-                                                </td>
-                                                <td>{assign.reason}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </section>
-
-                            {plan.shortages && plan.shortages.length > 0 && (
-                                <section className={styles.shortageSection}>
-                                    <h3>Shortages / External Hires Needed</h3>
-                                    <ul>
-                                        {plan.shortages.map((s: any, i: number) => (
-                                            <li key={i}>
-                                                <strong>{s.count}x {s.role_name}</strong> needed at venue {s.venue_id}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </section>
-                            )}
-                        </>
-                    ) : (
-                        plan.message ? null : <div>No requirements generated. Check if venues have staffing rules and events are created.</div>
-                    )}
-                </div>
+            {view === 'generated' && currentPlan && (
+                <GeneratedPlanView
+                    plan={currentPlan}
+                    onBack={() => setView('list')}
+                    onExport={() => alert('Exporting Plan PDF... (Coming Soon)')}
+                />
             )}
+
+            <NewPlanModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onGenerate={handleGeneratePlan}
+                venues={venues}
+                existingPlans={existingPlans}
+            />
         </div>
     );
 }

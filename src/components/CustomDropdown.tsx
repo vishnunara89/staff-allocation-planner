@@ -14,9 +14,19 @@ interface CustomDropdownProps {
     onChange: (value: string) => void;
     placeholder: string;
     icon?: ReactNode;
+    size?: 'small' | 'medium';
+    className?: string;
 }
 
-export default function CustomDropdown({ options, value, onChange, placeholder, icon }: CustomDropdownProps) {
+export default function CustomDropdown({
+    options,
+    value,
+    onChange,
+    placeholder,
+    icon,
+    size = 'medium',
+    className = ''
+}: CustomDropdownProps) {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -45,31 +55,38 @@ export default function CustomDropdown({ options, value, onChange, placeholder, 
     }, [isOpen]);
 
     return (
-        <div className={styles.dropdownContainer} ref={dropdownRef}>
+        <div
+            className={`${styles.dropdownContainer} ${styles[size]} ${className}`}
+            ref={dropdownRef}
+        >
             <div
                 className={`${styles.trigger} ${isOpen ? styles.triggerActive : ''}`}
                 onClick={() => setIsOpen(!isOpen)}
             >
-                {icon && <span className={styles.iconPrefix}>{icon}</span>}
-                <span className={styles.label}>{displayValue}</span>
+                <div style={{ display: 'flex', alignItems: 'center', flex: 1, overflow: 'hidden' }}>
+                    {icon && <span className={styles.iconPrefix}>{icon}</span>}
+                    <span className={styles.label}>{displayValue}</span>
+                </div>
                 <span className={`${styles.arrow} ${isOpen ? styles.arrowOpen : ''}`}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                 </span>
             </div>
 
             {isOpen && (
                 <div className={styles.menu}>
-                    <div
-                        className={`${styles.option} ${!value ? styles.optionSelected : ''}`}
-                        onClick={() => {
-                            onChange('');
-                            setIsOpen(false);
-                        }}
-                    >
-                        {placeholder}
-                    </div>
+                    {placeholder && !value && (
+                        <div
+                            className={`${styles.option} ${styles.optionSelected}`}
+                            onClick={() => {
+                                onChange('');
+                                setIsOpen(false);
+                            }}
+                        >
+                            {placeholder}
+                        </div>
+                    )}
                     {options.map((option) => (
                         <div
                             key={option.id}
@@ -82,6 +99,11 @@ export default function CustomDropdown({ options, value, onChange, placeholder, 
                             {option.name}
                         </div>
                     ))}
+                    {options.length === 0 && (
+                        <div className={styles.option} style={{ opacity: 0.5, cursor: 'default' }}>
+                            No options available
+                        </div>
+                    )}
                 </div>
             )}
         </div>

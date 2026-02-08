@@ -65,10 +65,10 @@ export function exportToCSV(staff: StaffMember[], roles: { id: number, name: str
  * Generates a blank CSV template for staff import
  */
 export function downloadCSVTemplate() {
-    const headers = ['full_name', 'primary_role_name', 'home_base_venue_name', 'english_proficiency', 'employment_type', 'phone', 'notes'];
-    const example = ['John Doe', 'Waiter', 'Sonara Camp', 'good', 'internal', '+971501234567', 'Friendly and experienced'];
+    const headers = ['full_name', 'primary_role', 'secondary_roles', 'english_proficiency', 'other_languages', 'special_skills', 'home_base_venue', 'employment_type', 'availability_status', 'notes'];
+    const example = ['John Doe', 'Waiter', 'Bartender', 'good', 'French,Spanish', 'First Aid', 'Sonara Camp', 'internal', 'available', 'Friendly and experienced'];
 
-    const csvContent = [headers.join(','), example.join(',')].join('\n');
+    const csvContent = [headers.join(','), example.map(v => `"${v}"`).join(',')].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
 

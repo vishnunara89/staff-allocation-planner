@@ -1,48 +1,80 @@
 "use client";
 
-import { useEffect, useState, FormEvent } from 'react';
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Event, Venue, CreateEventDTO } from '@/types';
 import styles from './events.module.css';
+import EventModal from '@/components/EventModal';
 
 export default function EventsPage() {
     const [events, setEvents] = useState<Event[]>([]);
     const [venues, setVenues] = useState<Venue[]>([]);
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-    const [editingEventId, setEditingEventId] = useState<number | null>(null);
-    const [showAddEvent, setShowAddEvent] = useState(false);
-    const [newEvent, setNewEvent] = useState<Partial<CreateEventDTO>>({
-        guest_count: 0,
-        priority: 'normal'
-    });
-
-    const [showReqPicker, setShowReqPicker] = useState(false);
-    const [reqSearch, setReqSearch] = useState('');
-    const [reqOptions, setReqOptions] = useState<any[]>([]);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingEvent, setEditingEvent] = useState<Partial<Event> | null>(null);
+    const [reportingEvent, setReportingEvent] = useState<Event | null>(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         fetchVenues();
-        fetchReqOptions();
     }, []);
 
     useEffect(() => {
         fetchEvents(selectedDate);
     }, [selectedDate]);
 
-    async function fetchReqOptions() {
-        try {
-            const res = await fetch('/api/requirements');
-            if (res.ok) setReqOptions(await res.json());
-        } catch (e) { }
-    }
-
     async function fetchVenues() {
-        const res = await fetch('/api/venues');
-        if (res.ok) setVenues(await res.json());
+        try {
+            const res = await fetch('/api/venues');
+            if (res.ok) setVenues(await res.json());
+        } catch (e) {
+            console.error('Failed to fetch venues', e);
+        }
     }
 
     async function fetchEvents(date: string) {
-        const res = await fetch(`/api/events?date=${date}`);
-        if (res.ok) setEvents(await res.json());
+        setLoading(true);
+        try {
+            const res = await fetch(`/api/events?date=${date}`);
+            if (res.ok) setEvents(await res.json());
+        } catch (e) {
+            console.error('Failed to fetch events', e);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    const handleSaveEvent = async (formData: Partial<CreateEventDTO>) => {
+        const url = editingEvent?.id ? `/api/events/${editingEvent.id}` : '/api/events';
+        const method = editingEvent?.id ? 'PUT' : 'POST';
+
+        const res = await fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                ...formData,
+                date: selectedDate
+            })
+        });
+
+        const saved = await res.json();
+        if (saved.error) throw new Error(saved.error);
+
+        if (editingEvent?.id) {
+            setEvents(events.map(ev => ev.id === editingEvent.id ? saved : ev));
+        } else {
+            setEvents([...events, saved]);
+        }
+    };
+
+    async function handleDeleteEvent(id: number) {
+        if (!confirm('Are you sure you want to delete this event? This action cannot be undone.')) return;
+        try {
+            await fetch(`/api/events/${id}`, { method: 'DELETE' });
+            setEvents(events.filter(e => e.id !== id));
+        } catch (e) {
+            console.error('Failed to delete event', e);
+        }
     }
 
     function formatTimeDisplay(timeStr?: string) {
@@ -54,50 +86,22 @@ export default function EventsPage() {
         return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
     }
 
-    async function handleSaveEvent(e: FormEvent) {
-        e.preventDefault();
+    const getVenueName = (id: number) => venues.find(v => v.id === id)?.name || 'Unknown Location';
+
+    const getReqsSummary = (reqsString?: string) => {
         try {
-            const url = editingEventId ? `/api/events/${editingEventId}` : '/api/events';
-            const method = editingEventId ? 'PUT' : 'POST';
-
-            const res = await fetch(url, {
-                method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    ...newEvent,
-                    date: selectedDate
-                })
-            });
-            const savedEvent = await res.json();
-            if (savedEvent.error) throw new Error(savedEvent.error);
-
-            if (editingEventId) {
-                setEvents(events.map(ev => ev.id === editingEventId ? savedEvent : ev));
-            } else {
-                setEvents([...events, savedEvent]);
-            }
-
-            setShowAddEvent(false);
-            setEditingEventId(null);
-            setNewEvent({ guest_count: 0, priority: 'normal' });
-        } catch (err) {
-            alert('Failed to save event');
-            console.error(err);
-        }
-    }
-
-    async function handleDeleteEvent(id: number) {
-        if (!confirm('Delete this event?')) return;
-        await fetch(`/api/events/${id}`, { method: 'DELETE' });
-        setEvents(events.filter(e => e.id !== id));
-    }
-
-    const getVenueName = (id: number) => venues.find(v => v.id === id)?.name || 'Unknown Venue';
+            if (!reqsString || !reqsString.startsWith('[')) return [];
+            const parsed = JSON.parse(reqsString);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (e) { return []; }
+    };
 
     return (
         <div className={styles.container}>
             <header className={styles.header}>
-                <h2>Events Planner</h2>
+                <div className={styles.headerInfo}>
+                    <h2>Events Planner</h2>
+                </div>
                 <div className={styles.controls}>
                     <input
                         type="date"
@@ -105,227 +109,105 @@ export default function EventsPage() {
                         onChange={e => setSelectedDate(e.target.value)}
                         className={styles.dateInput}
                     />
-                    <button onClick={() => {
-                        setShowAddEvent(!showAddEvent);
-                        setEditingEventId(null);
-                        setNewEvent({ guest_count: 0, priority: 'normal' });
-                    }} className={styles.buttonPrimary}>
-                        {showAddEvent ? 'Cancel' : '+ New Event'}
+                    <button
+                        onClick={() => {
+                            setEditingEvent(null);
+                            setIsModalOpen(true);
+                        }}
+                        className={styles.buttonPrimary}
+                    >
+                        + New Event
                     </button>
                 </div>
             </header>
 
-            {showAddEvent && (
-                <div className={styles.modalOverlay}>
-                    <form onSubmit={handleSaveEvent} className={styles.form}>
-                        <h3>{editingEventId ? 'Edit Event' : 'Add Event'} for {selectedDate}</h3>
-                        <div className={styles.formGrid}>
-                            <div className={styles.formGroup}>
-                                <label>Venue</label>
-                                <select
-                                    required
-                                    value={newEvent.venue_id || ''}
-                                    onChange={e => setNewEvent({ ...newEvent, venue_id: Number(e.target.value) })}
-                                >
-                                    <option value="">Select Venue...</option>
-                                    {venues.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
-                                </select>
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label>Guest Count</label>
-                                <input
-                                    type="number"
-                                    required
-                                    min="1"
-                                    step="1"
-                                    value={newEvent.guest_count}
-                                    onChange={e => {
-                                        const val = Math.max(0, Math.floor(Number(e.target.value)));
-                                        setNewEvent({ ...newEvent, guest_count: val });
-                                    }}
-                                />
-                                {newEvent.guest_count !== undefined && newEvent.guest_count <= 0 && (
-                                    <span className={styles.errorText}>Must be at least 1 guest</span>
-                                )}
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label>Start Time</label>
-                                <input
-                                    type="time"
-                                    required
-                                    step="60"
-                                    value={newEvent.start_time || ''}
-                                    onChange={e => setNewEvent({ ...newEvent, start_time: e.target.value })}
-                                    placeholder="HH:MM"
-                                />
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label>End Time</label>
-                                <input
-                                    type="time"
-                                    required
-                                    step="60"
-                                    value={newEvent.end_time || ''}
-                                    onChange={e => setNewEvent({ ...newEvent, end_time: e.target.value })}
-                                />
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label>Priority</label>
-                                <select
-                                    value={newEvent.priority}
-                                    onChange={e => setNewEvent({ ...newEvent, priority: e.target.value as any })}
-                                >
-                                    <option value="low">Low</option>
-                                    <option value="normal">Normal</option>
-                                    <option value="high">High</option>
-                                </select>
-                            </div>
-
-                            {/* Requirements Section - V3 Picker */}
-                            <div className={styles.fullWidthGroup}>
-                                <label>Requirements</label>
-                                <div className={styles.reqsContainer}>
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowReqPicker(true)}
-                                        className={styles.buttonSecondary}
-                                        style={{ width: '100%', marginBottom: '10px' }}
-                                    >
-                                        + Add Requirement
-                                    </button>
-
-                                    {/* Selected Requirements List */}
-                                    <div className={styles.reqList}>
-                                        {(() => {
-                                            try {
-                                                const reqs = newEvent.special_requirements ?
-                                                    (typeof newEvent.special_requirements === 'string' && newEvent.special_requirements.startsWith('[') ?
-                                                        JSON.parse(newEvent.special_requirements) : [])
-                                                    : [];
-
-                                                if (Array.isArray(reqs)) {
-                                                    return reqs.map((r: any, idx: number) => (
-                                                        <div key={idx} className={styles.reqTag}>
-                                                            <strong>{r.quantity}x</strong> {r.value} <span className={styles.reqType}>({r.type})</span>
-                                                            <span onClick={() => {
-                                                                const newReqs = [...reqs];
-                                                                newReqs.splice(idx, 1);
-                                                                setNewEvent({ ...newEvent, special_requirements: JSON.stringify(newReqs) });
-                                                            }} className={styles.removeReq}>×</span>
-                                                        </div>
-                                                    ));
-                                                }
-                                            } catch (e) { return null; }
-                                        })()}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Requirements Picker Modal */}
-                            {showReqPicker && (
-                                <div className={styles.pickerOverlay}>
-                                    <div className={styles.pickerModal}>
-                                        <div className={styles.pickerHeader}>
-                                            <h4>Select Requirement</h4>
-                                            <button type="button" onClick={() => setShowReqPicker(false)}>×</button>
-                                        </div>
-                                        <input
-                                            type="text"
-                                            placeholder="Search skills, languages..."
-                                            className={styles.pickerSearch}
-                                            autoFocus
-                                            onChange={e => setReqSearch(e.target.value)}
-                                        />
-
-                                        <div className={styles.pickerList}>
-                                            {reqOptions.filter(o => o.value.toLowerCase().includes(reqSearch.toLowerCase())).map((opt, i) => (
-                                                <div key={i} className={styles.pickerOption} onClick={() => {
-                                                    const currentReqs = newEvent.special_requirements ?
-                                                        (typeof newEvent.special_requirements === 'string' && newEvent.special_requirements.startsWith('[') ? JSON.parse(newEvent.special_requirements) : []) : [];
-
-                                                    const existing = currentReqs.find((r: any) => r.value === opt.value && r.type === opt.type);
-                                                    if (existing) {
-                                                        existing.quantity += 1;
-                                                    } else {
-                                                        currentReqs.push({ type: opt.type, value: opt.value, quantity: 1 });
-                                                    }
-
-                                                    setNewEvent({ ...newEvent, special_requirements: JSON.stringify(currentReqs) });
-                                                    setShowReqPicker(false);
-                                                    setReqSearch('');
-                                                }}>
-                                                    <span className={styles.optType}>{opt.type}</span>
-                                                    <span className={styles.optValue}>{opt.value}</span>
-                                                    {opt.available_internal !== undefined && (
-                                                        <span className={`${styles.optAvail} ${opt.available_internal === 0 ? styles.none : ''}`}>
-                                                            {opt.available_internal} available
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            ))}
-                                            {reqSearch && !reqOptions.find(o => o.value.toLowerCase() === reqSearch.toLowerCase()) && (
-                                                <div className={styles.pickerOption} onClick={async () => {
-                                                    const res = await fetch('/api/requirements', {
-                                                        method: 'POST',
-                                                        headers: { 'Content-Type': 'application/json' },
-                                                        body: JSON.stringify({ type: 'other', value: reqSearch })
-                                                    });
-                                                    const newOpt = await res.json();
-                                                    setReqOptions([...reqOptions, newOpt]);
-
-                                                    const currentReqs = newEvent.special_requirements ?
-                                                        (typeof newEvent.special_requirements === 'string' && newEvent.special_requirements.startsWith('[') ? JSON.parse(newEvent.special_requirements) : []) : [];
-                                                    currentReqs.push({ type: 'other', value: reqSearch, quantity: 1 });
-                                                    setNewEvent({ ...newEvent, special_requirements: JSON.stringify(currentReqs) });
-                                                    setShowReqPicker(false);
-                                                    setReqSearch('');
-                                                }}>
-                                                    <span className={styles.optType}>+ Create</span>
-                                                    <span className={styles.optValue}>"{reqSearch}"</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                        </div>
-                        <div className={styles.formActions}>
-                            <button type="button" onClick={() => setShowAddEvent(false)} className={styles.buttonSecondary}>Cancel</button>
-                            <button type="submit" className={styles.submitButton}>{editingEventId ? 'Save Changes' : 'Create Event'}</button>
-                        </div>
-                    </form>
-                </div>
-            )}
-
             <div className={styles.eventsList}>
-                {events.length === 0 ? (
-                    <div className={styles.emptyState}>No events scheduled for this day.</div>
+                {loading ? (
+                    <div className={styles.emptyState}>Loading your events...</div>
+                ) : events.length === 0 ? (
+                    <div className={styles.emptyState}>
+                        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📅</div>
+                        No events scheduled for this day.
+                        <br />
+                        <span style={{ fontSize: '0.9rem', color: '#cbd5e1' }}>Select another date or create a new event to get started.</span>
+                    </div>
                 ) : (
                     events.map(event => (
                         <div key={event.id} className={`${styles.eventCard} ${styles[event.priority]}`}>
                             <div className={styles.eventTime}>
-                                {formatTimeDisplay(event.start_time)} - {formatTimeDisplay(event.end_time)}
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                                </svg>
+                                {formatTimeDisplay(event.start_time)} — {formatTimeDisplay(event.end_time)}
                             </div>
+
                             <div className={styles.eventInfo}>
                                 <div className={styles.venueName}>{getVenueName(event.venue_id)}</div>
-                                <div className={styles.guestCount}>{event.guest_count} Guests</div>
-                                {event.special_requirements && (
-                                    <div className={styles.reqs}>Note: {event.special_requirements}</div>
-                                )}
+                                <div className={styles.guestCount}>
+                                    👤 <strong>{event.guest_count}</strong> Guests expected
+                                </div>
+
+                                <div className={styles.reqsSummary}>
+                                    {getReqsSummary(event.special_requirements).map((r: any, idx: number) => (
+                                        <span key={idx} className={styles.reqMiniBadge}>
+                                            {r.quantity}x {r.value}
+                                        </span>
+                                    ))}
+                                    {getReqsSummary(event.special_requirements).length === 0 && (
+                                        <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic' }}>Standard staffing rules apply</span>
+                                    )}
+                                </div>
                             </div>
-                            <div className={styles.actions}>
-                                <button onClick={() => {
-                                    setNewEvent(event);
-                                    setEditingEventId(event.id);
-                                    setShowAddEvent(true);
-                                }} className={styles.buttonSecondary} style={{ marginRight: '5px' }}>Edit</button>
-                                <button onClick={() => handleDeleteEvent(event.id)} className={styles.deleteButton}>×</button>
+
+                            <div className={styles.cardActions}>
+                                <button
+                                    onClick={() => setReportingEvent(event)}
+                                    className={styles.btnReport}
+                                >
+                                    See Report
+                                </button>
+
+                                <Link
+                                    href={`/plans?date=${selectedDate}`}
+                                    className={styles.btnPlan}
+                                >
+                                    Generate
+                                </Link>
+
+                                <button
+                                    onClick={() => {
+                                        setEditingEvent(event);
+                                        setIsModalOpen(true);
+                                    }}
+                                    className={styles.btnEdit}
+                                >
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                    </svg>
+                                    Edit
+                                </button>
+
+                                <button
+                                    onClick={() => handleDeleteEvent(event.id)}
+                                    className={styles.btnDelete}
+                                    title="Delete Event"
+                                >
+                                    ×
+                                </button>
                             </div>
                         </div>
                     ))
                 )}
             </div>
+
+            <EventModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onSave={handleSaveEvent}
+                venues={venues}
+                editingEvent={editingEvent}
+                selectedDate={selectedDate}
+            />
         </div>
     );
 }

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import styles from './plans.module.css';
 
 interface PlanResult {
@@ -12,9 +13,18 @@ interface PlanResult {
 }
 
 export default function PlansPage() {
-    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+    const searchParams = useSearchParams();
+    const urlDate = searchParams.get('date');
+
+    const [date, setDate] = useState(urlDate || new Date().toISOString().split('T')[0]);
     const [plan, setPlan] = useState<PlanResult | null>(null);
     const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (urlDate) {
+            setDate(urlDate);
+        }
+    }, [urlDate]);
 
     async function generatePlan() {
         setLoading(true);

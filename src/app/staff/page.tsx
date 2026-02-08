@@ -12,6 +12,7 @@ import {
 } from '@/lib/staff-utils';
 import CustomDropdown from '@/components/CustomDropdown';
 import StatusDropdown from '@/components/StatusDropdown';
+import BulkImportModal from '@/components/BulkImportModal';
 
 export default function StaffPage() {
     const [staff, setStaff] = useState<StaffMember[]>([]);
@@ -27,6 +28,7 @@ export default function StaffPage() {
 
     // Modal state
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
     const [editingStaff, setEditingStaff] = useState<StaffMember | null>(null);
     const [submitting, setSubmitting] = useState(false);
@@ -218,7 +220,7 @@ export default function StaffPage() {
                 <div className={styles.actions}>
                     <button onClick={downloadCSVTemplate} className={styles.buttonSecondary}>Template</button>
                     <button onClick={() => exportToCSV(filteredStaff, roles, venues)} className={styles.buttonSecondary}>Export CSV</button>
-                    <Link href="/staff/import" className={styles.buttonSecondary}>Import</Link>
+                    <button onClick={() => setIsImportModalOpen(true)} className={styles.buttonSecondary}>Import</button>
                     <button onClick={openAddModal} className={styles.buttonPrimary}>+ Add Staff</button>
                 </div>
             </div>
@@ -388,14 +390,16 @@ export default function StaffPage() {
 
             {/* Staff Modal (Add / Edit) */}
             {isModalOpen && editingStaff && (
-                <div className={styles.modalOverlay} onClick={() => setIsModalOpen(false)}>
-                    <div className={styles.modal} onClick={e => e.stopPropagation()}>
-                        <div className={styles.modalHeader}>
-                            <h3>{modalMode === 'add' ? 'Add New Staff' : 'Edit Staff Member'}</h3>
-                            <button className={styles.closeButton} onClick={() => setIsModalOpen(false)}>×</button>
+                <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
+                    <div className="modal-container" onClick={e => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <div className="modal-header-title">
+                                <h3>{modalMode === 'add' ? 'Add New Staff' : 'Edit Staff Member'}</h3>
+                            </div>
+                            <button className="modal-close-btn" onClick={() => setIsModalOpen(false)}>×</button>
                         </div>
-                        <form onSubmit={handleModalSubmit}>
-                            <div className={styles.modalBody}>
+                        <form onSubmit={handleModalSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+                            <div className="modal-body">
                                 <div className={styles.formGrid}>
                                     <div className={`${styles.formGroup} ${styles.formGroupFull}`}>
                                         <label>Full Name</label>
@@ -409,37 +413,35 @@ export default function StaffPage() {
                                     </div>
                                     <div className={styles.formGroup}>
                                         <label>Primary Role</label>
-                                        <select
-                                            className={styles.formSelect}
+                                        <CustomDropdown
+                                            options={roles.map(r => ({ id: r.id, name: r.name }))}
                                             value={editingStaff.primary_role_id}
-                                            onChange={e => setEditingStaff({ ...editingStaff, primary_role_id: Number(e.target.value) })}
-                                        >
-                                            {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-                                        </select>
+                                            onChange={val => setEditingStaff({ ...editingStaff, primary_role_id: Number(val) })}
+                                            placeholder="Select Role"
+                                        />
                                     </div>
                                     <div className={styles.formGroup}>
                                         <label>Home Base</label>
-                                        <select
-                                            className={styles.formSelect}
+                                        <CustomDropdown
+                                            options={venues.map(v => ({ id: v.id!, name: v.name }))}
                                             value={editingStaff.home_base_venue_id || ''}
-                                            onChange={e => setEditingStaff({ ...editingStaff, home_base_venue_id: e.target.value ? Number(e.target.value) : undefined })}
-                                        >
-                                            <option value="">No Home Base</option>
-                                            {venues.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
-                                        </select>
+                                            onChange={val => setEditingStaff({ ...editingStaff, home_base_venue_id: val ? Number(val) : undefined })}
+                                            placeholder="No Home Base"
+                                        />
                                     </div>
                                     <div className={styles.formGroup}>
                                         <label>English Proficiency</label>
-                                        <select
-                                            className={styles.formSelect}
+                                        <CustomDropdown
+                                            options={[
+                                                { id: 'basic', name: 'Basic' },
+                                                { id: 'medium', name: 'Medium' },
+                                                { id: 'good', name: 'Good' },
+                                                { id: 'fluent', name: 'Fluent' }
+                                            ]}
                                             value={editingStaff.english_proficiency}
-                                            onChange={e => setEditingStaff({ ...editingStaff, english_proficiency: e.target.value as any })}
-                                        >
-                                            <option value="basic">Basic</option>
-                                            <option value="medium">Medium</option>
-                                            <option value="good">Good</option>
-                                            <option value="fluent">Fluent</option>
-                                        </select>
+                                            onChange={val => setEditingStaff({ ...editingStaff, english_proficiency: val as any })}
+                                            placeholder="Select Proficiency"
+                                        />
                                     </div>
                                     <div className={styles.formGroup}>
                                         <label>Phone Number</label>
@@ -491,12 +493,19 @@ export default function StaffPage() {
                                                     onChange={e => setTempLang(e.target.value)}
                                                     onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addLanguage())}
                                                 />
-                                                <select value={tempLangLevel} onChange={e => setTempLangLevel(e.target.value)} className={styles.langSelect}>
-                                                    <option value="basic">Basic</option>
-                                                    <option value="medium">Medium</option>
-                                                    <option value="good">Good</option>
-                                                    <option value="fluent">Fluent</option>
-                                                </select>
+                                                <CustomDropdown
+                                                    size="small"
+                                                    className={styles.langSelect}
+                                                    options={[
+                                                        { id: 'basic', name: 'Basic' },
+                                                        { id: 'medium', name: 'Medium' },
+                                                        { id: 'good', name: 'Good' },
+                                                        { id: 'fluent', name: 'Fluent' }
+                                                    ]}
+                                                    value={tempLangLevel}
+                                                    onChange={setTempLangLevel}
+                                                    placeholder="Level"
+                                                />
                                                 <button type="button" onClick={addLanguage} className={styles.tagAddButton}>Add</button>
                                             </div>
                                             <div className={styles.activeTags}>
@@ -512,27 +521,29 @@ export default function StaffPage() {
 
                                     <div className={styles.formGroup}>
                                         <label>Employment Type</label>
-                                        <select
-                                            className={styles.formSelect}
+                                        <CustomDropdown
+                                            options={[
+                                                { id: 'internal', name: 'Internal' },
+                                                { id: 'external', name: 'External' },
+                                                { id: 'freelancer', name: 'Freelancer' }
+                                            ]}
                                             value={editingStaff.employment_type}
-                                            onChange={e => setEditingStaff({ ...editingStaff, employment_type: e.target.value as any })}
-                                        >
-                                            <option value="internal">Internal</option>
-                                            <option value="external">External</option>
-                                            <option value="freelancer">Freelancer</option>
-                                        </select>
+                                            onChange={val => setEditingStaff({ ...editingStaff, employment_type: val as any })}
+                                            placeholder="Select Type"
+                                        />
                                     </div>
                                     <div className={styles.formGroup}>
                                         <label>Availability Status</label>
-                                        <select
-                                            className={styles.formSelect}
+                                        <CustomDropdown
+                                            options={[
+                                                { id: 'available', name: 'Available' },
+                                                { id: 'off', name: 'Off' },
+                                                { id: 'leave', name: 'Leave' }
+                                            ]}
                                             value={editingStaff.availability_status}
-                                            onChange={e => setEditingStaff({ ...editingStaff, availability_status: e.target.value as any })}
-                                        >
-                                            <option value="available">Available</option>
-                                            <option value="off">Off</option>
-                                            <option value="leave">Leave</option>
-                                        </select>
+                                            onChange={val => setEditingStaff({ ...editingStaff, availability_status: val as any })}
+                                            placeholder="Select Status"
+                                        />
                                     </div>
                                     <div className={`${styles.formGroup} ${styles.formGroupFull}`}>
                                         <label>Notes</label>
@@ -553,7 +564,7 @@ export default function StaffPage() {
                                     </div>
                                 </div>
                             </div>
-                            <div className={styles.modalFooter}>
+                            <div className="modal-footer">
                                 {modalMode === 'edit' && (
                                     <div className={styles.modalFooterLeft}>
                                         <button
@@ -575,6 +586,12 @@ export default function StaffPage() {
                     </div>
                 </div>
             )}
+
+            <BulkImportModal
+                isOpen={isImportModalOpen}
+                onClose={() => setIsImportModalOpen(false)}
+                onSuccess={fetchData}
+            />
         </div>
     );
 }

@@ -102,7 +102,7 @@ export default function ModernSidebar() {
 
                 {!isMobile && (
                     <button className={styles.collapseToggle} onClick={toggleCollapse} aria-label="Toggle Sidebar">
-                        {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+                        <Menu size={16} />
                     </button>
                 )}
 

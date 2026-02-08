@@ -56,7 +56,7 @@ export default function CustomDropdown({
 
     return (
         <div
-            className={`${styles.dropdownContainer} ${styles[size]} ${className}`}
+            className={`${styles.dropdownContainer} ${styles[size]} ${isOpen ? styles.isOpen : ''} ${className}`}
             ref={dropdownRef}
         >
             <div

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Outfit, Cormorant_Garamond } from "next/font/google";
 import "./globals.css";
+import ModernSidebar from "@/components/ModernSidebar";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -17,8 +18,8 @@ const cormorant = Cormorant_Garamond({
 });
 
 export const metadata: Metadata = {
-  title: "Nara Pulse",
-  description: "Staff Allocation Planner – Manager Dashboard"
+  title: "NARA Operational",
+  description: "Advanced Staff Allocation System"
 };
 
 export default function RootLayout({
@@ -30,20 +31,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${outfit.variable} ${cormorant.variable} ${outfit.className}`}>
         <div className="app-layout">
-          {/* SIDEBAR */}
-          <aside className="sidebar">
-            <div className="sidebar-brand">
-              🧭 <span>Nara Pulse</span>
-            </div>
-
-            <nav className="sidebar-nav">
-              <a href="/" className="active">Overview</a>
-              <a href="/venues">Venues</a>
-              <a href="/staff">Staff Roster</a>
-              <a href="/events">Events</a>
-              <a href="/plans">Plans</a>
-            </nav>
-          </aside>
+          <ModernSidebar />
 
           {/* MAIN CONTENT */}
           <main className="content-area">

@@ -45,7 +45,7 @@ export default function EventsPage() {
         if (res.ok) setEvents(await res.json());
     }
 
-    function formatTimeDisplay(timeStr: string) {
+    function formatTimeDisplay(timeStr?: string) {
         if (!timeStr) return 'TBD';
         const [h, m] = timeStr.split(':');
         const date = new Date();

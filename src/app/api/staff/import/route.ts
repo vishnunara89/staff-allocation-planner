@@ -64,7 +64,7 @@ export async function POST(request: Request) {
         `);
 
         // Transaction for bulk insert? Or just loop. Loop is fine for small scale.
-        const insertMany = db.transaction((staffList) => {
+        const insertMany = db.transaction((staffList: any[]) => {
             for (const staff of staffList) insertStmt.run(staff);
         });
 

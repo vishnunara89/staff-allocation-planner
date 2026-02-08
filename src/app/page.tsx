@@ -30,7 +30,7 @@ export default function Home() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
 
   useEffect(() => {
-    // Replace later with real API
+    // 🔁 Replace later with real API (/api/dashboard)
     setStats({
       venues: 6,
       staff: 42,
@@ -62,87 +62,125 @@ export default function Home() {
 
   return (
     <div className="dashboard">
-   
-      <h2>Dashboard</h2>
+      {/* =====================
+          HEADER
+      ===================== */}
+      <h2>Operations Dashboard</h2>
       <p className="dashboard-subtitle">
-        Overview of operations, staffing, and planning
+        High-level overview of venues, staffing, and operational planning
       </p>
 
-     
-      <div className="card-grid">
-        <div className="card">
-          <h3>Total Venues</h3>
-          <p>{stats.venues}</p>
+      {/* =====================
+          KEY METRICS
+      ===================== */}
+      <section>
+        <h3>Key Metrics</h3>
+
+        <div className="card-grid">
+          <MetricCard title="Total Venues" value={stats.venues} />
+          <MetricCard title="Total Staff" value={stats.staff} />
+          <MetricCard title="Available Staff" value={stats.availableStaff} />
+          <MetricCard title="Upcoming Events" value={stats.upcomingEvents} />
+          <MetricCard title="Active Plans" value={stats.activePlans} />
         </div>
+      </section>
 
-        <div className="card">
-          <h3>Total Staff</h3>
-          <p>{stats.staff}</p>
+      {/* =====================
+          OPERATIONAL INSIGHTS
+      ===================== */}
+      <section>
+        <h3>Operational Insights</h3>
+
+        <div className="card-grid">
+          <div className="card">
+            <h4>Staff Availability</h4>
+            <p>Available: {stats.staffAvailability.available}</p>
+            <p>Unavailable: {stats.staffAvailability.unavailable}</p>
+          </div>
+
+          <div className="card">
+            <h4>Venue Types</h4>
+            <p>Camp: {stats.venueTypes.camp}</p>
+            <p>Private: {stats.venueTypes.private}</p>
+            <p>Other: {stats.venueTypes.other}</p>
+          </div>
+
+          <div className="card">
+            <h4>Employment Type</h4>
+            <p>Internal: {stats.employmentTypes.internal}</p>
+            <p>External: {stats.employmentTypes.external}</p>
+          </div>
         </div>
+      </section>
 
-        <div className="card">
-          <h3>Available Staff</h3>
-          <p>{stats.availableStaff}</p>
+      {/* =====================
+          QUICK ACTIONS
+      ===================== */}
+      <section>
+        <h3>Management Actions</h3>
+
+        <div className="card-grid">
+          <ActionCard
+            href="/staff/new"
+            title="Add Staff"
+            description="Create a new staff profile"
+          />
+
+          <ActionCard
+            href="/venues/new"
+            title="Add Venue"
+            description="Register a new operational venue"
+          />
+
+          <ActionCard
+            href="/events/new"
+            title="Create Event"
+            description="Schedule a new event"
+          />
+
+          <ActionCard
+            href="/plans/new"
+            title="Create Plan"
+            description="Generate a staffing allocation plan"
+          />
         </div>
-
-        <div className="card">
-          <h3>Upcoming Events</h3>
-          <p>{stats.upcomingEvents}</p>
-        </div>
-
-        <div className="card">
-          <h3>Active Plans</h3>
-          <p>{stats.activePlans}</p>
-        </div>
-      </div>
-
-    
-      <h2 style={{ marginTop: "3rem" }}>Operations Insight</h2>
-
-      <div className="card-grid">
-        <div className="card">
-          <h3>Staff Availability</h3>
-          <p>Available: {stats.staffAvailability.available}</p>
-          <p>Unavailable: {stats.staffAvailability.unavailable}</p>
-        </div>
-
-        <div className="card">
-          <h3>Venue Types</h3>
-          <p>Camp: {stats.venueTypes.camp}</p>
-          <p>Private: {stats.venueTypes.private}</p>
-          <p>Other: {stats.venueTypes.other}</p>
-        </div>
-
-        <div className="card">
-          <h3>Employment Type</h3>
-          <p>Internal: {stats.employmentTypes.internal}</p>
-          <p>External: {stats.employmentTypes.external}</p>
-        </div>
-      </div>
-
-      <h2 style={{ marginTop: "3rem" }}>Quick Actions</h2>
-
-      <div className="card-grid">
-        <a href="/staff/new" className="card">
-          <h3>➕ Add Staff</h3>
-          <p>Create a new staff member</p>
-        </a>
-
-        <a href="/venues/new" className="card">
-          <h3>➕ Add Venue</h3>
-          <p>Create a new venue</p>
-        </a>
-
-        <a href="/events/new" className="card">
-          <h3>📅 Create Event</h3>
-          <p>Schedule an upcoming event</p>
-        </a>
-
-        <a href="/plans/new" className="card">
-          <h3>🧠 Create Plan</h3>
-          <p>Generate a staffing plan</p>
-        </a>
-      </div>
+      </section>
     </div>
+  );
+}
+
+/* =====================
+   SMALL COMPONENTS
+===================== */
+
+function MetricCard({
+  title,
+  value
+}: {
+  title: string;
+  value: number;
+}) {
+  return (
+    <div className="card">
+      <h4>{title}</h4>
+      <p style={{ fontSize: "2rem", fontWeight: 600 }}>{value}</p>
+    </div>
+  );
+}
+
+function ActionCard({
+  href,
+  title,
+  description
+}: {
+  href: string;
+  title: string;
+  description: string;
+}) {
+  return (
+    <a href={href} className="card">
+      <h4>{title}</h4>
+      <p>{description}</p>
+    </a>
   );
 }

@@ -12,10 +12,13 @@ import {
     Database,
     Shield,
     Loader2,
-    Trash2
+    Trash2,
+    Save,
+    RotateCcw
 } from "lucide-react";
 import styles from "../venues.module.css";
 import Link from "next/link";
+import { MANNING_TEMPLATES } from "@/lib/manningTemplates";
 
 interface VenueDetailProps {
     params: { id: string };
@@ -30,6 +33,14 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
     const [manningTables, setManningTables] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
+    // Manning Rules Excel Editor State
+    const [selectedTemplate, setSelectedTemplate] = useState<string>('Custom');
+    const [manningDept, setManningDept] = useState<string>('all');
+    const [manningConfig, setManningConfig] = useState<any>({ brackets: ['0-50'], rows: [] });
+    const [savingManning, setSavingManning] = useState(false);
+    const [manningFeedback, setManningFeedback] = useState('');
+    const [availableDepts, setAvailableDepts] = useState<string[]>(['all']);
+
     useEffect(() => {
         async function fetchVenueData() {
             setLoading(true);
@@ -40,9 +51,27 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                     fetch(`/api/manning-tables?venue_id=${params.id}`)
                 ]);
 
-                if (venueRes.ok) setVenue(await venueRes.json());
-                if (rulesRes.ok) setRules(await rulesRes.json());
-                if (tablesRes.ok) setManningTables(await tablesRes.json());
+                if (venueRes.ok) {
+                    const vData = await venueRes.json();
+                    setVenue(vData);
+                    if (vData.name) {
+                        document.title = `${vData.name} (Admin) | NARA Pulse`;
+                    }
+                }
+                if (rulesRes.ok) {
+                    const rData = await rulesRes.json();
+                    setRules(Array.isArray(rData) ? rData : []);
+                }
+                if (tablesRes.ok) {
+                    const tData = await tablesRes.json();
+                    setManningTables(Array.isArray(tData) ? tData : []);
+
+                    // Pre-load first available table into editor
+                    if (Array.isArray(tData) && tData.length > 0) {
+                        setManningConfig(tData[0].config);
+                        setManningDept(tData[0].department);
+                    }
+                }
             } catch (error) {
                 console.error("Failed to fetch venue details:", error);
             } finally {
@@ -174,26 +203,200 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                     )}
 
                     {activeTab === 'Manning Tables' && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                            <h3>Manning Tables ({manningTables.length})</h3>
-                            {manningTables.length === 0 ? (
-                                <div style={{ padding: '3rem', textAlign: 'center', background: '#f8fafc', borderRadius: '16px', border: '1px dashed #e2e8f0' }}>
-                                    <Database size={32} style={{ color: '#cbd5e1', marginBottom: '1rem' }} />
-                                    <p>No operational manning tables configured yet.</p>
+                        <div className={styles.manningEditor}>
+                            <div className={styles.manningHeader}>
+                                <div className={styles.templateSelector}>
+                                    <label>Template:</label>
+                                    <select
+                                        value={selectedTemplate}
+                                        onChange={e => setSelectedTemplate(e.target.value)}
+                                        className={styles.select}
+                                    >
+                                        {MANNING_TEMPLATES.map(t => (
+                                            <option key={t.name} value={t.name}>{t.name}</option>
+                                        ))}
+                                    </select>
+                                    <button
+                                        onClick={() => {
+                                            const template = MANNING_TEMPLATES.find(t => t.name === selectedTemplate);
+                                            if (!template) return;
+                                            setAvailableDepts(template.departments);
+                                            const firstDept = template.departments[0];
+                                            setManningDept(firstDept);
+                                            setManningConfig(template.configs[firstDept]);
+                                        }}
+                                        className={styles.addBracketBtn}
+                                        style={{ borderStyle: 'solid', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                                    >
+                                        <RotateCcw size={14} /> Load Template
+                                    </button>
                                 </div>
-                            ) : (
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '1rem' }}>
-                                    {manningTables.map((table: any, i: number) => (
-                                        <div key={i} style={{ padding: '1.5rem', background: 'white', border: '1px solid #f1f5f9', borderRadius: '16px' }}>
-                                            <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: '0.5rem', textTransform: 'capitalize' }}>{table.department} Table</div>
-                                            <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Updated: {new Date(table.updated_at).toLocaleDateString()}</div>
-                                            <div style={{ marginTop: '1rem', fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary-color)' }}>
-                                                {Object.keys(table.config).length} Service Brackets
-                                            </div>
-                                        </div>
-                                    ))}
+                                <div className={styles.manningActions}>
+                                    {manningFeedback && <span className={styles.feedback}>{manningFeedback}</span>}
+                                    <button
+                                        onClick={async () => {
+                                            setSavingManning(true);
+                                            setManningFeedback('');
+                                            try {
+                                                const res = await fetch('/api/manning-tables', {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({
+                                                        venue_id: Number(params.id),
+                                                        department: manningDept,
+                                                        config: manningConfig
+                                                    })
+                                                });
+                                                if (res.ok) {
+                                                    setManningFeedback('Operational rules updated!');
+                                                    setTimeout(() => setManningFeedback(''), 3000);
+                                                }
+                                            } catch (err) {
+                                                setManningFeedback('Failed to sync');
+                                            } finally {
+                                                setSavingManning(false);
+                                            }
+                                        }}
+                                        className={styles.viewAllBtn}
+                                        style={{ background: 'var(--primary-color)', color: 'white', border: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                                        disabled={savingManning}
+                                    >
+                                        <Save size={16} /> {savingManning ? 'Syncing...' : 'Save Manning Rules'}
+                                    </button>
                                 </div>
-                            )}
+                            </div>
+
+                            <div className={styles.deptTabs}>
+                                {['service', 'bar', 'management'].map(dept => (
+                                    <button
+                                        key={dept}
+                                        className={`${styles.deptTab} ${manningDept === dept ? styles.activeDeptTab : ''}`}
+                                        onClick={() => setManningDept(dept)}
+                                    >
+                                        {dept.charAt(0).toUpperCase() + dept.slice(1)}
+                                    </button>
+                                ))}
+                            </div>
+
+                            <div className={styles.excelGridContainer}>
+                                <table className={styles.excelGrid}>
+                                    <thead>
+                                        <tr>
+                                            <th className={styles.stickyCol}>Role</th>
+                                            {manningConfig.brackets.map((bracket: string, idx: number) => (
+                                                <th key={idx} className={styles.bracketHeader}>
+                                                    <input
+                                                        type="text"
+                                                        value={bracket}
+                                                        onChange={e => {
+                                                            const newConfig = { ...manningConfig };
+                                                            newConfig.brackets = [...newConfig.brackets];
+                                                            newConfig.brackets[idx] = e.target.value;
+                                                            setManningConfig(newConfig);
+                                                        }}
+                                                        className={styles.bracketInput}
+                                                    />
+                                                    <button
+                                                        onClick={() => {
+                                                            if (!confirm('Remove PAX bracket?')) return;
+                                                            const newConfig = { ...manningConfig };
+                                                            newConfig.brackets = newConfig.brackets.filter((_: any, i: number) => i !== idx);
+                                                            newConfig.rows = newConfig.rows.map((row: any) => ({
+                                                                ...row,
+                                                                counts: row.counts.filter((_: any, i: number) => i !== idx)
+                                                            }));
+                                                            setManningConfig(newConfig);
+                                                        }}
+                                                        className={styles.removeBracketBtn}
+                                                    >×</button>
+                                                </th>
+                                            ))}
+                                            <th style={{ background: 'white' }}>
+                                                <button
+                                                    onClick={() => {
+                                                        const lastBracket = manningConfig.brackets[manningConfig.brackets.length - 1] || '0-50';
+                                                        const parts = lastBracket.split('-');
+                                                        const lastMax = parseInt(parts[1]) || 50;
+                                                        const newBracket = `${lastMax}-${lastMax + 50}`;
+                                                        const newConfig = { ...manningConfig };
+                                                        newConfig.brackets = [...newConfig.brackets, newBracket];
+                                                        newConfig.rows = newConfig.rows.map((row: any) => ({
+                                                            ...row,
+                                                            counts: [...row.counts, 0]
+                                                        }));
+                                                        setManningConfig(newConfig);
+                                                    }}
+                                                    className={styles.addBracketBtn}
+                                                >+ PAX</button>
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {manningConfig.rows.map((row: any, rowIdx: number) => (
+                                            <tr key={rowIdx}>
+                                                <td className={styles.stickyCol}>
+                                                    <input
+                                                        type="text"
+                                                        value={row.role}
+                                                        onChange={e => {
+                                                            const newConfig = { ...manningConfig };
+                                                            newConfig.rows = [...newConfig.rows];
+                                                            newConfig.rows[rowIdx] = { ...newConfig.rows[rowIdx], role: e.target.value };
+                                                            setManningConfig(newConfig);
+                                                        }}
+                                                        className={styles.roleInput}
+                                                    />
+                                                    <button
+                                                        onClick={() => {
+                                                            if (!confirm('Remove this role?')) return;
+                                                            const newConfig = { ...manningConfig };
+                                                            newConfig.rows = newConfig.rows.filter((_: any, i: number) => i !== rowIdx);
+                                                            setManningConfig(newConfig);
+                                                        }}
+                                                        className={styles.removeRoleBtn}
+                                                    >×</button>
+                                                </td>
+                                                {row.counts.map((count: number, colIdx: number) => (
+                                                    <td key={colIdx}>
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            value={count}
+                                                            onChange={e => {
+                                                                const newConfig = { ...manningConfig };
+                                                                newConfig.rows = [...newConfig.rows];
+                                                                newConfig.rows[rowIdx] = {
+                                                                    ...newConfig.rows[rowIdx],
+                                                                    counts: [...newConfig.rows[rowIdx].counts]
+                                                                };
+                                                                newConfig.rows[rowIdx].counts[colIdx] = parseInt(e.target.value) || 0;
+                                                                setManningConfig(newConfig);
+                                                            }}
+                                                            className={styles.countInput}
+                                                        />
+                                                    </td>
+                                                ))}
+                                                <td></td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div className={styles.gridActions}>
+                                <button
+                                    onClick={() => {
+                                        const newConfig = { ...manningConfig };
+                                        newConfig.rows = [...newConfig.rows, {
+                                            role: 'New Role',
+                                            counts: new Array(newConfig.brackets.length).fill(0)
+                                        }];
+                                        setManningConfig(newConfig);
+                                    }}
+                                    className={styles.addBracketBtn}
+                                    style={{ borderStyle: 'solid', padding: '0.6rem 1.25rem' }}
+                                >+ Add Row</button>
+                            </div>
                         </div>
                     )}
                 </div>

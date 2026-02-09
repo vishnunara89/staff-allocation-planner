@@ -39,12 +39,12 @@
     font-weight: 700;
     border-radius: 10px;
     height: 38px;
-    background: var(--secondary-color);
-    /* Nara Espresso #1A120B */
+    background: var(--primary-color);
+    /* Nara Espresso #7C4C2C */
     color: #fff;
-    border: 1px solid var(--secondary-color);
+    border: 1px solid var(--primary-color);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 6px rgba(124, 76, 44, 0.2);
 }
 
 .actions button:hover {

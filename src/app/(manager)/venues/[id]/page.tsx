@@ -49,8 +49,13 @@ export default function VenueDetailPage({ params }: { params: { id: string } }) 
         ]).then(([venueData, rulesData, rolesData]) => {
             if (venueData.error) throw new Error(venueData.error);
             setVenue(venueData);
-            setRules(rulesData);
+            setRules(Array.isArray(rulesData) ? rulesData : []);
             setRoles(rolesData);
+
+            // Set dynamic title
+            if (venueData.name) {
+                document.title = `${venueData.name} | NARA Intelligence`;
+            }
         }).catch(err => {
             setError('Failed to load venue data');
             console.error(err);
@@ -402,51 +407,24 @@ export default function VenueDetailPage({ params }: { params: { id: string } }) 
                     </div>
                 ) : (
                     <div className={styles.manningEditor}>
-                        {/* Header with template selector */}
                         <div className={styles.manningHeader}>
-                            <div className={styles.templateSelector}>
-                                <label>Template:</label>
-                                <select
-                                    value={selectedTemplate}
-                                    onChange={e => setSelectedTemplate(e.target.value)}
-                                    className={styles.select}
-                                >
-                                    {MANNING_TEMPLATES.map(t => (
-                                        <option key={t.name} value={t.name}>{t.name}</option>
-                                    ))}
-                                </select>
-                                <button onClick={handleLoadTemplate} className={styles.buttonSecondary}>
-                                    Load Template
-                                </button>
-                            </div>
-                            <div className={styles.manningActions}>
-                                {manningFeedback && <span className={styles.feedback}>{manningFeedback}</span>}
-                                <button
-                                    onClick={handleSaveManning}
-                                    className={styles.buttonPrimary}
-                                    disabled={savingManning}
-                                >
-                                    {savingManning ? 'Saving...' : 'Save Rules'}
-                                </button>
-                            </div>
+                            <h3 style={{ margin: 0, fontSize: '1.25rem', fontFamily: 'var(--font-cormorant), serif' }}>Manning Rules</h3>
                         </div>
 
                         {/* Department tabs */}
-                        {availableDepts.length > 1 && (
-                            <div className={styles.deptTabs}>
-                                {availableDepts.map(dept => (
-                                    <button
-                                        key={dept}
-                                        className={`${styles.deptTab} ${manningDept === dept ? styles.activeDeptTab : ''}`}
-                                        onClick={() => handleDeptChange(dept)}
-                                    >
-                                        {dept.charAt(0).toUpperCase() + dept.slice(1)}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
+                        <div className={styles.deptTabs}>
+                            {['service', 'bar', 'management'].map(dept => (
+                                <button
+                                    key={dept}
+                                    className={`${styles.deptTab} ${manningDept === dept ? styles.activeDeptTab : ''}`}
+                                    onClick={() => handleDeptChange(dept)}
+                                >
+                                    {dept.charAt(0).toUpperCase() + dept.slice(1)}
+                                </button>
+                            ))}
+                        </div>
 
-                        {/* Excel-like grid */}
+                        {/* Excel-like grid (READ ONLY) */}
                         <div className={styles.excelGridContainer}>
                             <table className={styles.excelGrid}>
                                 <thead>
@@ -454,60 +432,34 @@ export default function VenueDetailPage({ params }: { params: { id: string } }) 
                                         <th className={styles.stickyCol}>Role</th>
                                         {manningConfig.brackets.map((bracket, idx) => (
                                             <th key={idx} className={styles.bracketHeader}>
-                                                <input
-                                                    type="text"
-                                                    value={bracket}
-                                                    onChange={e => updateBracket(idx, e.target.value)}
-                                                    className={styles.bracketInput}
-                                                />
-                                                <button
-                                                    onClick={() => removeBracket(idx)}
-                                                    className={styles.removeBracketBtn}
-                                                    title="Remove bracket"
-                                                >×</button>
+                                                <div className={styles.bracketText}>{bracket}</div>
                                             </th>
                                         ))}
-                                        <th>
-                                            <button onClick={addBracket} className={styles.addBracketBtn}>+ PAX</button>
-                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {manningConfig.rows.map((row, rowIdx) => (
-                                        <tr key={rowIdx}>
-                                            <td className={styles.stickyCol}>
-                                                <input
-                                                    type="text"
-                                                    value={row.role}
-                                                    onChange={e => updateRoleName(rowIdx, e.target.value)}
-                                                    className={styles.roleInput}
-                                                />
-                                                <button
-                                                    onClick={() => removeRole(rowIdx)}
-                                                    className={styles.removeRoleBtn}
-                                                    title="Remove role"
-                                                >×</button>
+                                    {manningConfig.rows.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={manningConfig.brackets.length + 1} style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8', fontStyle: 'italic' }}>
+                                                No specific rules defined for {manningDept} in this venue yet.
                                             </td>
-                                            {row.counts.map((count, colIdx) => (
-                                                <td key={colIdx}>
-                                                    <input
-                                                        type="number"
-                                                        min="0"
-                                                        value={count}
-                                                        onChange={e => updateCell(rowIdx, colIdx, parseInt(e.target.value) || 0)}
-                                                        className={styles.countInput}
-                                                    />
-                                                </td>
-                                            ))}
-                                            <td></td>
                                         </tr>
-                                    ))}
+                                    ) : (
+                                        manningConfig.rows.map((row, rowIdx) => (
+                                            <tr key={rowIdx}>
+                                                <td className={styles.stickyCol}>
+                                                    <div className={styles.roleLabel}>{row.role}</div>
+                                                </td>
+                                                {row.counts.map((count, colIdx) => (
+                                                    <td key={colIdx}>
+                                                        <div className={styles.countDisplay}>{count}</div>
+                                                    </td>
+                                                ))}
+                                            </tr>
+                                        ))
+                                    )}
                                 </tbody>
                             </table>
-                        </div>
-
-                        <div className={styles.gridActions}>
-                            <button onClick={addRole} className={styles.buttonSecondary}>+ Add Role</button>
                         </div>
                     </div>
                 )}

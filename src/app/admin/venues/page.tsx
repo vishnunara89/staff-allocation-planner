@@ -1,32 +1,89 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     MapPin,
     Users,
     Settings,
-    Calendar,
     Plus,
     ArrowRight,
     Search,
-    ChevronRight,
-    MoreVertical
+    MoreVertical,
+    Trash2,
+    X,
+    Building2,
+    Loader2
 } from "lucide-react";
 import styles from "./venues.module.css";
 import Link from "next/link";
+import VenueModal from "@/components/VenueModal";
 
-const dummyVenues = [
-    { id: 1, name: "SONARA", type: "LUXURY CAMP", managers: 2, rules: 14, notes: "Flagship luxury desert dining experience.", color: "#7C4C2C" },
-    { id: 2, name: "NEST", type: "CAMP", managers: 1, rules: 8, notes: "Eco-friendly glamping and stargazing.", color: "#1e40af" },
-    { id: 3, name: "LADY NARA", type: "RESTAURANT", managers: 2, rules: 12, notes: "Premium restaurant in the desert.", color: "#b91c1c" },
-    { id: 4, name: "RAMADAN CAMP", type: "SEASONAL", managers: 1, rules: 20, notes: "Special seasonal operations camp.", color: "#15803d" },
-];
+interface Venue {
+    id: number;
+    name: string;
+    type: string;
+    notes: string;
+}
+
+interface Rule {
+    id: number;
+    venue_id: number;
+}
 
 export default function AdminVenuesPage() {
+    const [venues, setVenues] = useState<Venue[]>([]);
+    const [ruleCounts, setRuleCounts] = useState<Record<number, number>>({});
+    const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
+    const [showModal, setShowModal] = useState(false);
 
-    const filteredVenues = dummyVenues.filter(v =>
-        v.name.toLowerCase().includes(searchQuery.toLowerCase())
+    useEffect(() => {
+        fetchVenues();
+    }, []);
+
+    async function fetchVenues() {
+        setLoading(true);
+        try {
+            const [venuesRes, rulesRes] = await Promise.all([
+                fetch('/api/venues'),
+                fetch('/api/rules')
+            ]);
+
+            const venuesData = await venuesRes.json();
+            const rulesData = await rulesRes.json();
+
+            // Calculate rule counts per venue
+            const counts: Record<number, number> = {};
+            rulesData.forEach((rule: Rule) => {
+                counts[rule.venue_id] = (counts[rule.venue_id] || 0) + 1;
+            });
+
+            setVenues(venuesData);
+            setRuleCounts(counts);
+        } catch (error) {
+            console.error("Failed to fetch venues data:", error);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    const handleDelete = async (id: number, e: React.MouseEvent) => {
+        e.preventDefault(); e.stopPropagation();
+        if (!confirm("Are you sure you want to delete this venue? This will also remove associated staffing rules.")) return;
+
+        try {
+            const res = await fetch(`/api/venues/${id}`, { method: 'DELETE' });
+            if (res.ok) {
+                setVenues(venues.filter(v => v.id !== id));
+            }
+        } catch (error) {
+            console.error("Delete failed:", error);
+        }
+    };
+
+    const filteredVenues = venues.filter(v =>
+        v.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        v.type.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     return (
@@ -37,13 +94,14 @@ export default function AdminVenuesPage() {
                     <p>Global management of all physical locations and operational rules.</p>
                 </div>
                 <button
+                    onClick={() => setShowModal(true)}
                     style={{ background: 'var(--primary-color)', color: 'white', padding: '0.75rem 1.5rem', borderRadius: '12px', fontWeight: 600, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                 >
                     <Plus size={18} /> Add New Venue
                 </button>
             </header>
 
-            <div style={{ background: 'white', padding: '1rem', borderRadius: '16px', border: '1px solid rgba(0, 0, 0, 0.05)', display: 'flex', gap: '1rem' }}>
+            <div style={{ background: 'white', padding: '1rem', borderRadius: '16px', border: '1px solid rgba(0, 0, 0, 0.05)', display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
                 <div style={{ position: 'relative', flex: 1, maxWidth: '400px' }}>
                     <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
                     <input
@@ -56,51 +114,77 @@ export default function AdminVenuesPage() {
                 </div>
             </div>
 
-            <div className={styles.venueGrid}>
-                {filteredVenues.map((venue) => (
-                    <Link href={`/admin/venues/${venue.id}`} key={venue.id} style={{ textDecoration: 'none' }}>
-                        <div className={styles.venueCard}>
-                            <div className={styles.cardHeader}>
-                                <div className={styles.venueTitle}>
-                                    <span className={styles.venueType}>{venue.type}</span>
-                                    <h3>{venue.name}</h3>
-                                </div>
-                                <button className={styles.moreBtn} style={{ background: 'none', border: 'none', color: '#94a3b8' }}>
-                                    <MoreVertical size={20} />
-                                </button>
-                            </div>
-
-                            <p className={styles.venueNotes}>{venue.notes}</p>
-
-                            <div className={styles.cardMetrics}>
-                                <div className={styles.metric}>
-                                    <div className={styles.metricValue}>
-                                        <Users size={16} /> {venue.managers}
+            {loading ? (
+                <div style={{ padding: '4rem', textAlign: 'center', color: '#64748b' }}>
+                    <Loader2 size={32} className="animate-spin" style={{ margin: '0 auto 1rem' }} />
+                    <p>Loading venues...</p>
+                </div>
+            ) : filteredVenues.length === 0 ? (
+                <div style={{ padding: '4rem', textAlign: 'center', background: 'white', borderRadius: '24px', border: '1px dashed #e2e8f0' }}>
+                    <Building2 size={48} style={{ color: '#cbd5e1', marginBottom: '1rem' }} />
+                    <h3>No Venues Found</h3>
+                    <p style={{ color: '#64748b' }}>Create a venue to start defining staffing rules.</p>
+                </div>
+            ) : (
+                <div className={styles.venueGrid}>
+                    {filteredVenues.map((venue) => (
+                        <div key={venue.id} className={styles.venueItem}>
+                            <Link href={`/admin/venues/${venue.id}`} style={{ textDecoration: 'none', color: 'inherit', flex: 1 }}>
+                                <div className={styles.venueCard}>
+                                    <div className={styles.cardHeader}>
+                                        <div className={styles.venueTitle}>
+                                            <span className={styles.venueType}>{venue.type}</span>
+                                            <h3>{venue.name}</h3>
+                                        </div>
                                     </div>
-                                    <span className={styles.metricLabel}>Managers</span>
-                                </div>
-                                <div className={styles.metric}>
-                                    <div className={styles.metricValue}>
-                                        <Settings size={16} /> {venue.rules}
-                                    </div>
-                                    <span className={styles.metricLabel}>Rules</span>
-                                </div>
-                            </div>
 
-                            <div className={styles.venueFooter}>
-                                <div className={styles.managerAvatars}>
-                                    {[...Array(venue.managers)].map((_, i) => (
-                                        <div key={i} className={styles.avatar}>M</div>
-                                    ))}
+                                    <p className={styles.venueNotes}>{venue.notes || "No additional notes provided."}</p>
+
+                                    <div className={styles.cardMetrics}>
+                                        <div className={styles.metric}>
+                                            <div className={styles.metricValue}>
+                                                <Users size={16} /> —
+                                            </div>
+                                            <span className={styles.metricLabel}>Managers</span>
+                                        </div>
+                                        <div className={styles.metric}>
+                                            <div className={styles.metricValue}>
+                                                <Settings size={16} /> {ruleCounts[venue.id] || 0}
+                                            </div>
+                                            <span className={styles.metricLabel}>Rules</span>
+                                        </div>
+                                    </div>
+
+                                    <div className={styles.venueFooter}>
+                                        <div className={styles.viewDetail}>
+                                            Manage <ArrowRight size={14} />
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className={styles.viewDetail}>
-                                    Manage <ArrowRight size={14} />
-                                </div>
-                            </div>
+                            </Link>
+                            <button
+                                className={styles.deleteBtn}
+                                onClick={(e) => handleDelete(venue.id, e)}
+                                title="Delete Venue"
+                            >
+                                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
                         </div>
-                    </Link>
-                ))}
-            </div>
+                    ))}
+                </div>
+            )}
+
+            <VenueModal
+                isOpen={showModal}
+                onClose={() => setShowModal(false)}
+                onSuccess={() => {
+                    fetchVenues();
+                    setShowModal(false);
+                }}
+            />
         </div>
     );
 }

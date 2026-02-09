@@ -58,6 +58,16 @@ export default function AdminSidebar() {
     const toggleCollapse = () => setIsCollapsed(!isCollapsed);
     const toggleMobile = () => setIsMobileOpen(!isMobileOpen);
 
+    const handleLogout = async () => {
+        try {
+            await fetch("/api/auth/logout", { method: "POST" });
+            window.location.href = "/login";
+        } catch (error) {
+            console.error("Logout failed:", error);
+            window.location.href = "/login";
+        }
+    };
+
     const sidebarClasses = `
     ${styles.sidebar} 
     ${isCollapsed ? styles.collapsed : ""} 
@@ -127,7 +137,7 @@ export default function AdminSidebar() {
                             </div>
                         )}
                     </div>
-                    <button className={styles.logoutBtn} title="Logout">
+                    <button className={styles.logoutBtn} title="Logout" onClick={handleLogout}>
                         <LogOut size={18} />
                         {!isCollapsed && <span>Logout</span>}
                     </button>

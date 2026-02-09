@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Event, Venue, StaffingRule, Role, StaffMember, ManningBracketRow } from '@/types';
-import styles from '../app/events/events.module.css';
+import styles from '../app/(manager)/events/events.module.css';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 

@@ -29,25 +29,30 @@
 }
 
 .toolbar {
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
     background: white;
     padding: 1.5rem;
     border-radius: 16px;
     border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
-.toolRow {
-    display: flex;
-    justify-content: space-between;
-    gap: 1rem;
+.filterGrid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2rem;
+    align-items: center;
+    width: 100%;
 }
 
-.filterGroup {
-    display: flex;
-    gap: 1rem;
-    flex-wrap: wrap;
+@media (max-width: 1200px) {
+    .filterGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 640px) {
+    .filterGrid {
+        grid-template-columns: 1fr;
+    }
 }
 
 .tableContainer {
@@ -63,19 +68,123 @@
 }
 
 .table th {
-    text-align: left;
-    padding: 1rem 1.5rem;
-    background: #f8fafc;
-    font-size: 0.75rem;
-    font-weight: 700;
+    background: #FAFAFA;
+    padding: 0.85rem 1.5rem;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
     color: #64748b;
-    border-bottom: 1px solid #f1f5f9;
+    font-weight: 800;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .table td {
-    padding: 1.25rem 1.5rem;
-    border-bottom: 1px solid #f1f5f9;
-    font-size: 0.9rem;
+    padding: 0.85rem 1.5rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    vertical-align: middle;
+    color: #1a1a1a;
+    font-size: 0.875rem;
+}
+
+.staffNameWrapper {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.staffAvatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: #F1E4C3;
+    /* Nara Champagne */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: #7C4C2C;
+    /* Primary Color */
+    font-size: 0.85rem;
+    flex-shrink: 0;
+}
+
+.staffMeta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.staffName {
+    font-weight: 600;
+    color: #1a1a1a;
+    font-size: 0.95rem;
+}
+
+.tagCloud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.tag {
+    font-size: 0.65rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 5px;
+    background: #f1f1f0;
+    color: #64748b;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.tagLanguage {
+    background: #F1E4C3;
+    color: #7C4C2C;
+}
+
+.tagSkill {
+    background: #EEE;
+    color: #1a1a1a;
+}
+
+.contactCell {
+    display: flex;
+    gap: 0.4rem;
+}
+
+.iconButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: #fff;
+    color: #64748b;
+    text-decoration: none;
+    transition: all 0.2s;
+    border: 1px solid #e2e8f0;
+}
+
+.iconButton:hover:not(.disabled) {
+    color: #7C4C2C;
+    border-color: #7C4C2C;
+    background: #F1E4C3;
+}
+
+.iconButton svg {
+    width: 16px;
+    height: 16px;
+}
+
+.iconButton.whatsapp:hover {
+    background: #dcfce7;
+    border-color: #22c55e;
+    color: #166534;
+}
+
+.iconButton.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
 }
 
 .vipBadge {

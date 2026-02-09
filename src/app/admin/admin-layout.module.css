@@ -8,8 +8,7 @@
 .adminContent {
     flex: 1;
     padding: 2.5rem;
-    overflow-y: auto;
-    height: 100vh;
+    min-width: 0;
 }
 
 @media (max-width: 1024px) {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Event, Venue } from '@/types';
 // We'll reuse the events module css for consistency
-import styles from '../app/events/events.module.css';
+import styles from '../app/(manager)/events/events.module.css';
 
 interface NewPlanModalProps {
     isOpen: boolean;

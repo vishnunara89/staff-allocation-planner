@@ -13,12 +13,13 @@ import {
     ChevronLeft,
     ChevronRight,
     Menu,
-    X
+    X,
+    LogOut
 } from "lucide-react";
 import styles from "./modern-sidebar.module.css";
 
 const navItems = [
-    { href: "/", label: "Overview", icon: LayoutDashboard },
+    { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
     { href: "/venues", label: "Venues", icon: MapPin },
     { href: "/staff", label: "Staff Roster", icon: Users },
     { href: "/events", label: "Events", icon: Calendar },
@@ -51,6 +52,16 @@ export default function ModernSidebar() {
 
     const toggleCollapse = () => setIsCollapsed(!isCollapsed);
     const toggleMobile = () => setIsMobileOpen(!isMobileOpen);
+
+    const handleLogout = async () => {
+        try {
+            await fetch("/api/auth/logout", { method: "POST" });
+            window.location.href = "/login";
+        } catch (error) {
+            console.error("Logout failed:", error);
+            window.location.href = "/login";
+        }
+    };
 
     const sidebarClasses = `
     ${styles.sidebar} 
@@ -106,7 +117,20 @@ export default function ModernSidebar() {
                     </button>
                 )}
 
-                <div className={styles.footer}>
+                <div className={styles.profileSection}>
+                    <div className={styles.adminProfile}>
+                        <div className={styles.avatar}>M</div>
+                        {!isCollapsed && (
+                            <div className={styles.profileInfo}>
+                                <div className={styles.profileName}>Nara Manager</div>
+                                <div className={styles.profileRole}>Venue Manager</div>
+                            </div>
+                        )}
+                    </div>
+                    <button className={styles.logoutBtn} title="Logout" onClick={handleLogout}>
+                        <LogOut size={18} />
+                        {!isCollapsed && <span>Logout</span>}
+                    </button>
                     <div className={styles.version}>{isCollapsed ? "v26" : "v2.0.26"}</div>
                 </div>
             </aside>

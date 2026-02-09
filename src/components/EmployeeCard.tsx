@@ -1,6 +1,6 @@
 import React from 'react';
 import { PlanAssignment } from '@/types';
-import styles from '../app/plans/plans.module.css';
+import styles from '../app/(manager)/plans/plans.module.css';
 
 interface EmployeeCardProps {
     assignment: PlanAssignment;

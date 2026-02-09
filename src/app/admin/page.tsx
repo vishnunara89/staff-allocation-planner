@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
     Users,
     MapPin,
@@ -7,31 +8,68 @@ import {
     AlertTriangle,
     Plus,
     ArrowRight,
-    Search,
     Clock,
     UserPlus,
     PlusSquare
 } from "lucide-react";
 import styles from "./admin-dashboard.module.css";
 import Link from "next/link";
-
-const metrics = [
-    { label: "Total Venues", value: "12", icon: MapPin, color: "#7C4C2C", bg: "#fdf5f0" },
-    { label: "Active Managers", value: "8", icon: Users, color: "#1e40af", bg: "#eff6ff" },
-    { label: "Total Employees", value: "142", icon: UserPlus, color: "#15803d", bg: "#f0fdf4" },
-    { label: "Today's Events", value: "3", icon: Calendar, color: "#92400e", bg: "#fffbeb" },
-    { label: "Staffing Gaps", value: "5", icon: AlertTriangle, color: "#b91c1c", bg: "#fef2f2" },
-];
-
-const activities = [
-    { user: "Ryan", action: "generated a plan for SONARA", time: "2 hours ago", type: "plan" },
-    { user: "Vishnu", action: "added 12 employees via bulk import", time: "5 hours ago", type: "import" },
-    { user: "Sarah", action: "updated manning rules for NEST", time: "Yesterday", type: "rule" },
-    { user: "Ryan", action: "created a new event: Corporate Dinner", time: "Yesterday", type: "event" },
-    { user: "Admin", action: "assigned Vishnu to Lady Nara", time: "2 days ago", type: "assignment" },
-];
+import { useRouter } from "next/navigation";
 
 export default function AdminDashboard() {
+    const router = useRouter();
+    const [counts, setCounts] = useState({
+        venues: 0,
+        staff: 0,
+        events: 0,
+        gaps: 0,
+        managers: 0
+    });
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        async function fetchDashboardData() {
+            try {
+                const today = new Date().toISOString().split('T')[0];
+
+                // Fetch data in parallel
+                const [venuesRes, staffRes, eventsRes] = await Promise.all([
+                    fetch('/api/venues'),
+                    fetch('/api/staff'),
+                    fetch(`/api/events?from_date=${today}`)
+                ]);
+
+                const [venues, staff, events] = await Promise.all([
+                    venuesRes.json(),
+                    staffRes.json(),
+                    eventsRes.json()
+                ]);
+
+                setCounts({
+                    venues: venues.length || 0,
+                    staff: staff.length || 0,
+                    events: events.length || 0,
+                    gaps: 0, // Placeholder for gaps
+                    managers: 0 // Placeholder until managers table exists
+                });
+            } catch (error) {
+                console.error("Failed to fetch dashboard data:", error);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        fetchDashboardData();
+    }, []);
+
+    const metrics = [
+        { label: "Total Venues", value: counts.venues, icon: MapPin, color: "#7C4C2C", bg: "#fdf5f0" },
+        { label: "Active Managers", value: counts.managers || "—", icon: Users, color: "#1e40af", bg: "#eff6ff" },
+        { label: "Total Employees", value: counts.staff, icon: UserPlus, color: "#15803d", bg: "#f0fdf4" },
+        { label: "Today's Events", value: counts.events, icon: Calendar, color: "#92400e", bg: "#fffbeb" },
+        { label: "Staffing Gaps", value: counts.gaps, icon: AlertTriangle, color: "#b91c1c", bg: "#fef2f2" },
+    ];
+
     return (
         <div className={styles.dashboard}>
             <header className={styles.header}>
@@ -51,12 +89,9 @@ export default function AdminDashboard() {
                             >
                                 <metric.icon size={20} />
                             </div>
-                            <span className={`${styles.metricTrend} ${i % 2 === 0 ? styles.trendUp : styles.trendDown}`}>
-                                {i % 2 === 0 ? "+12%" : "-2%"}
-                            </span>
                         </div>
                         <div>
-                            <div className={styles.metricValue}>{metric.value}</div>
+                            <div className={styles.metricValue}>{loading ? "..." : metric.value}</div>
                             <div className={styles.metricLabel}>{metric.label}</div>
                         </div>
                     </div>
@@ -67,19 +102,19 @@ export default function AdminDashboard() {
                 <section className={styles.quickActions}>
                     <h2 className={styles.sectionTitle}>Quick Actions</h2>
                     <div className={styles.actionGrid}>
-                        <button className={styles.actionBtn}>
+                        <button className={styles.actionBtn} onClick={() => router.push('/admin/managers')}>
                             <PlusSquare size={24} />
                             <span>Add New Manager</span>
                         </button>
-                        <button className={styles.actionBtn}>
+                        <button className={styles.actionBtn} onClick={() => router.push('/admin/venues')}>
                             <Plus size={24} />
                             <span>Add New Venue</span>
                         </button>
-                        <button className={styles.actionBtn}>
+                        <button className={styles.actionBtn} onClick={() => router.push('/admin/events')}>
                             <Calendar size={24} />
                             <span>View Today's Events</span>
                         </button>
-                        <button className={styles.actionBtn}>
+                        <button className={styles.actionBtn} onClick={() => router.push('/admin/plans')}>
                             <AlertTriangle size={24} />
                             <span>Check Staffing Gaps</span>
                         </button>
@@ -89,19 +124,12 @@ export default function AdminDashboard() {
                 <section className={styles.activityFeed}>
                     <h2 className={styles.sectionTitle}>Recent Activity</h2>
                     <div className={styles.activityList}>
-                        {activities.map((item, i) => (
-                            <Link href="/admin/activity" key={i} className={styles.activityItem}>
-                                <div className={styles.activityIcon}>
-                                    <Clock size={16} />
-                                </div>
-                                <div className={styles.activityInfo}>
-                                    <p className={styles.activityText}>
-                                        <strong>{item.user}</strong> {item.action}
-                                    </p>
-                                    <span className={styles.activityTime}>{item.time}</span>
-                                </div>
-                            </Link>
-                        ))}
+                        <div style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>
+                            <Clock size={32} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
+                            <p style={{ fontSize: '0.9rem', fontStyle: 'italic' }}>
+                                Activity logging will be enabled in the next update.
+                            </p>
+                        </div>
                     </div>
                     <Link href="/admin/activity" className={styles.viewAllBtn} style={{ fontSize: '0.85rem', color: '#7C4C2C', fontWeight: 600, textAlign: 'center', marginTop: '1rem', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                         View All Activity <ArrowRight size={14} />

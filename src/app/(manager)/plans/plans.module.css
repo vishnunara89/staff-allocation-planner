@@ -1,7 +1,6 @@
 /* Main Container */
 .container {
     padding: 2.5rem;
-    max-width: 1200px;
     margin: 0 auto;
     font-family: var(--font-outfit), sans-serif;
 }

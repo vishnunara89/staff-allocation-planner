@@ -2,7 +2,7 @@
 
 import { useState, useEffect, FormEvent } from 'react';
 import { Venue, CreateEventDTO, Event } from '@/types';
-import styles from '../app/events/events.module.css';
+import styles from '../app/(manager)/events/events.module.css';
 import CustomDropdown from '@/components/CustomDropdown';
 import PremiumTimePicker from '@/components/PremiumTimePicker';
 

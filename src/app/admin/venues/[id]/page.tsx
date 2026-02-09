@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     MapPin,
     Users,
@@ -10,7 +10,9 @@ import {
     Plus,
     FileText,
     Database,
-    Shield
+    Shield,
+    Loader2,
+    Trash2
 } from "lucide-react";
 import styles from "../venues.module.css";
 import Link from "next/link";
@@ -19,13 +21,55 @@ interface VenueDetailProps {
     params: { id: string };
 }
 
-type TabType = 'Overview' | 'Staffing Rules' | 'Manning Tables' | 'Events' | 'Assigned Managers';
+type TabType = 'Overview' | 'Staffing Rules' | 'Manning Tables';
 
 export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
     const [activeTab, setActiveTab] = useState<TabType>('Overview');
+    const [venue, setVenue] = useState<any>(null);
+    const [rules, setRules] = useState<any[]>([]);
+    const [manningTables, setManningTables] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    // In a real app, fetch venue data based on params.id
-    const venue = { id: params.id, name: "SONARA", type: "LUXURY CAMP", notes: "Flagship luxury desert dining experience." };
+    useEffect(() => {
+        async function fetchVenueData() {
+            setLoading(true);
+            try {
+                const [venueRes, rulesRes, tablesRes] = await Promise.all([
+                    fetch(`/api/venues/${params.id}`),
+                    fetch(`/api/rules?venue_id=${params.id}`),
+                    fetch(`/api/manning-tables?venue_id=${params.id}`)
+                ]);
+
+                if (venueRes.ok) setVenue(await venueRes.json());
+                if (rulesRes.ok) setRules(await rulesRes.json());
+                if (tablesRes.ok) setManningTables(await tablesRes.json());
+            } catch (error) {
+                console.error("Failed to fetch venue details:", error);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        fetchVenueData();
+    }, [params.id]);
+
+    if (loading) {
+        return (
+            <div style={{ padding: '8rem', textAlign: 'center', color: '#64748b' }}>
+                <Loader2 size={48} className="animate-spin" style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
+                <h3>Loading operational data...</h3>
+            </div>
+        );
+    }
+
+    if (!venue) {
+        return (
+            <div style={{ padding: '8rem', textAlign: 'center' }}>
+                <h3 style={{ color: '#e11d48' }}>Venue Not Found</h3>
+                <Link href="/admin/venues" style={{ color: 'var(--primary-color)', textDecoration: 'none', fontWeight: 600 }}>Return to Venues</Link>
+            </div>
+        );
+    }
 
     return (
         <div className={styles.container}>
@@ -44,13 +88,10 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                             <h1 style={{ fontSize: '2.5rem', fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, margin: 0 }}>{venue.name}</h1>
                         </div>
                     </div>
-                    <button style={{ background: 'var(--primary-color)', color: 'white', padding: '0.85rem 2rem', borderRadius: '12px', fontWeight: 600, border: 'none', cursor: 'pointer' }}>
-                        Edit Venue details
-                    </button>
                 </div>
 
                 <nav className={styles.tabs}>
-                    {(['Overview', 'Staffing Rules', 'Manning Tables', 'Events', 'Assigned Managers'] as TabType[]).map((tab) => (
+                    {(['Overview', 'Staffing Rules', 'Manning Tables'] as TabType[]).map((tab) => (
                         <div
                             key={tab}
                             className={`${styles.tab} ${activeTab === tab ? styles.activeTab : ''}`}
@@ -67,14 +108,14 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                                 <section>
                                     <h4 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '1rem' }}>Venue Information</h4>
-                                    <p style={{ color: '#64748b', lineHeight: 1.6 }}>{venue.notes}</p>
+                                    <p style={{ color: '#64748b', lineHeight: 1.6 }}>{venue.notes || "No operational notes provided for this venue."}</p>
                                 </section>
 
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }}>
                                     {[
-                                        { label: 'Active Rules', value: '14', icon: Settings },
-                                        { label: 'Upcoming Events', value: '24', icon: Calendar },
-                                        { label: 'Manning Brackets', value: '8', icon: Database },
+                                        { label: 'Active Rules', value: rules.length, icon: Settings },
+                                        { label: 'Upcoming Events', value: '—', icon: Calendar },
+                                        { label: 'Manning Tables', value: manningTables.length, icon: Database },
                                     ].map((stat, i) => (
                                         <div key={i} style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
                                             <stat.icon size={20} style={{ color: 'var(--primary-color)', marginBottom: '0.75rem' }} />
@@ -91,26 +132,68 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                                         <Shield size={18} /> Assigned Managers
                                     </h4>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                        {['Ryan Operational', 'Sarah Events'].map(m => (
-                                            <div key={m} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', borderRadius: '10px', background: '#f8fafc' }}>
-                                                <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--primary-color)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700 }}>{m[0]}</div>
-                                                <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{m}</span>
-                                            </div>
-                                        ))}
-                                        <button style={{ marginTop: '0.5rem', background: 'none', border: '1.5px dashed #cbd5e1', borderRadius: '10px', padding: '0.75rem', color: '#64748b', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>
-                                            + Assign Manager
-                                        </button>
+                                        <p style={{ fontSize: '0.85rem', color: '#94a3b8', fontStyle: 'italic', textAlign: 'center', padding: '1rem' }}>
+                                            Manager assignment available in Phase 4.
+                                        </p>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    {activeTab !== 'Overview' && (
-                        <div style={{ padding: '4rem', textAlign: 'center', background: '#f8fafc', borderRadius: '16px', border: '1.5px dashed #e2e8f0', color: '#64748b' }}>
-                            <Settings size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
-                            <h3>{activeTab} Management</h3>
-                            <p>Interface for {activeTab.toLowerCase()} is coming in the next execution step.</p>
+                    {activeTab === 'Staffing Rules' && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <h3>Staffing Rules ({rules.length})</h3>
+                                <Link href="/admin/rules" className={styles.viewAllBtn} style={{ background: 'var(--primary-color)', color: 'white', padding: '0.5rem 1rem', borderRadius: '8px', textDecoration: 'none', fontWeight: 600, fontSize: '0.85rem' }}>
+                                    Manage All Rules
+                                </Link>
+                            </div>
+                            {rules.length === 0 ? (
+                                <div style={{ padding: '3rem', textAlign: 'center', background: '#f8fafc', borderRadius: '16px', border: '1px dashed #e2e8f0' }}>
+                                    <Settings size={32} style={{ color: '#cbd5e1', marginBottom: '1rem' }} />
+                                    <p>No special staffing rules defined for this venue.</p>
+                                </div>
+                            ) : (
+                                <div style={{ display: 'grid', gap: '0.75rem' }}>
+                                    {rules.map((rule: any) => (
+                                        <div key={rule.id} style={{ padding: '1rem', background: 'white', border: '1px solid #f1f5f9', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <div>
+                                                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--primary-color)', textTransform: 'uppercase' }}>{rule.department}</span>
+                                                <div style={{ fontWeight: 600 }}>Role ID: {rule.role_id}</div>
+                                            </div>
+                                            <div style={{ textAlign: 'right', fontSize: '0.85rem', color: '#64748b' }}>
+                                                {rule.ratio_guests && <div>{rule.ratio_staff}:{rule.ratio_guests} PAX</div>}
+                                                {rule.min_required > 0 && <div>Min: {rule.min_required}</div>}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {activeTab === 'Manning Tables' && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                            <h3>Manning Tables ({manningTables.length})</h3>
+                            {manningTables.length === 0 ? (
+                                <div style={{ padding: '3rem', textAlign: 'center', background: '#f8fafc', borderRadius: '16px', border: '1px dashed #e2e8f0' }}>
+                                    <Database size={32} style={{ color: '#cbd5e1', marginBottom: '1rem' }} />
+                                    <p>No operational manning tables configured yet.</p>
+                                </div>
+                            ) : (
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '1rem' }}>
+                                    {manningTables.map((table: any, i: number) => (
+                                        <div key={i} style={{ padding: '1.5rem', background: 'white', border: '1px solid #f1f5f9', borderRadius: '16px' }}>
+                                            <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: '0.5rem', textTransform: 'capitalize' }}>{table.department} Table</div>
+                                            <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Updated: {new Date(table.updated_at).toLocaleDateString()}</div>
+                                            <div style={{ marginTop: '1rem', fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary-color)' }}>
+                                                {Object.keys(table.config).length} Service Brackets
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>

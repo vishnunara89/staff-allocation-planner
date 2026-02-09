@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from 'react';
-import styles from '../app/staff/staff.module.css';
+import styles from '../app/(manager)/staff/staff.module.css';
 
 interface BulkImportModalProps {
     isOpen: boolean;

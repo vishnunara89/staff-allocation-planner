@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Plan, PlanAssignment, StaffMember, Role } from '@/types';
-import styles from '../app/plans/plans.module.css';
+import styles from '../app/(manager)/plans/plans.module.css';
 import EmployeeCard from './EmployeeCard';
 import { generateStaffingPlanPDF } from '@/utils/PDFGenerator';
 

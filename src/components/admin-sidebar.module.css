@@ -1,9 +1,10 @@
 .sidebar {
     width: 260px;
     height: 100vh;
-    position: fixed;
-    left: 0;
+    position: sticky;
     top: 0;
+    flex-shrink: 0;
+    /* Sticky ensures it takes up space and stays fixed */
     background: rgba(255, 255, 255, 0.7);
     backdrop-filter: blur(20px);
     border-right: 1px solid rgba(0, 0, 0, 0.05);
@@ -277,6 +278,9 @@
 /* Mobile Rules */
 @media (max-width: 1024px) {
     .sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
         transform: translateX(-100%);
         width: 280px;
         background: white;

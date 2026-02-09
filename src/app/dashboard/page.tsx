@@ -92,8 +92,8 @@ export default function Home() {
         <div className="card-grid">
           <ActionCard href="/staff/new" title="Add Staff" />
           <ActionCard href="/venues/new" title="Add Venue" />
-          <ActionCard href="/events/new" title="Create Event" />
-          <ActionCard href="/plans/new" title="Create Plan" />
+          <ActionCard href="/events" title="Create Event" />
+          <ActionCard href="/plans" title="Create Plan" />
         </div>
       </section>
     </div>

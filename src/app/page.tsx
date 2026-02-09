@@ -7,9 +7,15 @@ import {
   CheckCircle2,
   CalendarClock,
   FileCheck,
-  PlusCircle
+  PlusCircle,
 } from "lucide-react";
 import Link from "next/link";
+
+export const dynamic = "force-dynamic";
+
+/* =====================
+   TYPES
+===================== */
 
 type DashboardStats = {
   venues: number;
@@ -35,37 +41,65 @@ type DashboardStats = {
   };
 };
 
+/* =====================
+   SAFE DEFAULT STATE
+===================== */
+
+const EMPTY_STATS: DashboardStats = {
+  venues: 0,
+  staff: 0,
+  availableStaff: 0,
+  upcomingEvents: 0,
+  activePlans: 0,
+
+  staffAvailability: {
+    available: 0,
+    unavailable: 0,
+  },
+
+  venueTypes: {
+    camp: 0,
+    private: 0,
+    other: 0,
+  },
+
+  employmentTypes: {
+    internal: 0,
+    external: 0,
+  },
+};
+
+/* =====================
+   PAGE
+===================== */
+
 export default function Home() {
-  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [stats, setStats] = useState<DashboardStats>(EMPTY_STATS);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 🔁 Replace later with real API (/api/dashboard)
-    setStats({
-      venues: 6,
-      staff: 42,
-      availableStaff: 28,
-      upcomingEvents: 5,
-      activePlans: 3,
+    const loadDashboard = async () => {
+      try {
+        const res = await fetch("/api/dashboard", { cache: "no-store" });
+        const data = await res.json();
 
-      staffAvailability: {
-        available: 28,
-        unavailable: 14
-      },
+        console.log("📊 Dashboard API data:", data);
 
-      venueTypes: {
-        camp: 3,
-        private: 2,
-        other: 1
-      },
-
-      employmentTypes: {
-        internal: 30,
-        external: 12
+        setStats({
+          ...EMPTY_STATS,
+          ...data, // merge to guarantee all keys exist
+        });
+      } catch (err) {
+        console.error("Dashboard load error:", err);
+      } finally {
+        setLoading(false);
       }
-    });
+    };
+
+    loadDashboard();
   }, []);
 
-  if (!stats) {
+  if (loading) {
     return <div className="empty-state">Loading NARA Intelligence…</div>;
   }
 
@@ -84,16 +118,8 @@ export default function Home() {
       <section>
         <h3>Key Metrics</h3>
         <div className="dashboard-grid">
-          <MetricCard
-            title="Total Venues"
-            value={stats.venues}
-            icon={<Building2 size={18} />}
-          />
-          <MetricCard
-            title="Total Staff"
-            value={stats.staff}
-            icon={<Users size={18} />}
-          />
+          <MetricCard title="Total Venues" value={stats.venues} icon={<Building2 size={18} />} />
+          <MetricCard title="Total Staff" value={stats.staff} icon={<Users size={18} />} />
           <MetricCard
             title="Available Staff"
             value={stats.availableStaff}
@@ -117,75 +143,79 @@ export default function Home() {
         <div className="dashboard-grid">
           <div className="card">
             <h4>Staff Availability</h4>
-            <div style={{ marginTop: '1rem' }}>
-              <ProgressStat label="Available" value={stats.staffAvailability.available} total={stats.staff} color="#166534" />
-              <ProgressStat label="Unavailable" value={stats.staffAvailability.unavailable} total={stats.staff} color="#9B2C2C" />
+            <div style={{ marginTop: "1rem" }}>
+              <ProgressStat
+                label="Available"
+                value={stats.staffAvailability.available}
+                total={stats.staff}
+                color="#166534"
+              />
+              <ProgressStat
+                label="Unavailable"
+                value={stats.staffAvailability.unavailable}
+                total={stats.staff}
+                color="#9B2C2C"
+              />
             </div>
           </div>
 
           <div className="card">
             <h4>Venue Types</h4>
-            <div style={{ marginTop: '1rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginBottom: '0.5rem' }}>
-                <span>Camp</span>
-                <span className="badge">{stats.venueTypes.camp}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginBottom: '0.5rem' }}>
-                <span>Private</span>
-                <span className="badge">{stats.venueTypes.private}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                <span>Other</span>
-                <span className="badge">{stats.venueTypes.other}</span>
-              </div>
+            <div style={{ marginTop: "1rem" }}>
+              <Row label="Camp" value={stats.venueTypes.camp} />
+              <Row label="Private" value={stats.venueTypes.private} />
+              <Row label="Other" value={stats.venueTypes.other} />
             </div>
           </div>
 
           <div className="card">
             <h4>Employment Type</h4>
-            <div style={{ marginTop: '1rem' }}>
-              <ProgressStat label="Internal" value={stats.employmentTypes.internal} total={stats.staff} color="#7C4C2C" />
-              <ProgressStat label="External" value={stats.employmentTypes.external} total={stats.staff} color="#1A120B" />
+            <div style={{ marginTop: "1rem" }}>
+              <ProgressStat
+                label="Internal"
+                value={stats.employmentTypes.internal}
+                total={stats.staff}
+                color="#7C4C2C"
+              />
+              <ProgressStat
+                label="External"
+                value={stats.employmentTypes.external}
+                total={stats.staff}
+                color="#1A120B"
+              />
             </div>
           </div>
 
-          <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', border: '1px dashed var(--border-color)', background: 'transparent' }}>
+          <div
+            className="card"
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+              alignItems: "center",
+              border: "1px dashed var(--border-color)",
+              background: "transparent",
+            }}
+          >
             <FileCheck size={32} color="var(--muted-color)" />
-            <p className="text-muted" style={{ fontSize: '0.8rem', marginTop: '0.5rem' }}>{stats.activePlans} Active Plans</p>
+            <p className="text-muted" style={{ fontSize: "0.8rem", marginTop: "0.5rem" }}>
+              {stats.activePlans} Active Plans
+            </p>
           </div>
         </div>
       </section>
 
       {/* =====================
-          QUICK ACTIONS
+          MANAGEMENT ACTIONS
       ===================== */}
       <section>
         <h3>Management Actions</h3>
 
         <div className="action-grid">
-          <ActionCard
-            href="/staff/new"
-            title="Add Staff"
-            description="Create new staff profile"
-          />
-
-          <ActionCard
-            href="/venues/new"
-            title="Add Venue"
-            description="Register new venue"
-          />
-
-          <ActionCard
-            href="/events/new"
-            title="Create Event"
-            description="Schedule new event"
-          />
-
-          <ActionCard
-            href="/plans/new"
-            title="Create Plan"
-            description="Generate allocation"
-          />
+          <ActionCard href="/staff" title="Add Staff" description="Create new staff profile" />
+          <ActionCard href="/venues" title="Add Venue" description="Register new venue" />
+          <ActionCard href="/events" title="Create Event" description="Schedule new event" />
+          <ActionCard href="/plans" title="Create Plan" description="Generate allocation" />
         </div>
       </section>
     </div>
@@ -193,14 +223,14 @@ export default function Home() {
 }
 
 /* =====================
-   SMALL COMPONENTS
+   COMPONENTS
 ===================== */
 
 function MetricCard({
   title,
   value,
   icon,
-  color
+  color,
 }: {
   title: string;
   value: number;
@@ -209,7 +239,7 @@ function MetricCard({
 }) {
   return (
     <div className="stat-card">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
+      <div style={{ display: "flex", justifyContent: "space-between" }}>
         <h4>{title}</h4>
         <div style={{ color: color || "var(--muted-color)" }}>{icon}</div>
       </div>
@@ -218,17 +248,37 @@ function MetricCard({
   );
 }
 
-function ProgressStat({ label, value, total, color }: { label: string, value: number, total: number, color: string }) {
-  const percentage = (value / total) * 100;
+function ProgressStat({
+  label,
+  value,
+  total,
+  color,
+}: {
+  label: string;
+  value: number;
+  total: number;
+  color: string;
+}) {
+  const percentage = total === 0 ? 0 : (value / total) * 100;
+
   return (
     <div style={{ marginBottom: "0.75rem" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem", fontWeight: 600, marginBottom: "0.25rem" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem" }}>
         <span>{label}</span>
         <span>{value}</span>
       </div>
-      <div style={{ width: "100%", height: "4px", background: "#f1f1f0", borderRadius: "2px", overflow: "hidden" }}>
+      <div style={{ height: "4px", background: "#eee" }}>
         <div style={{ width: `${percentage}%`, height: "100%", background: color }} />
       </div>
+    </div>
+  );
+}
+
+function Row({ label, value }: { label: string; value: number }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem" }}>
+      <span>{label}</span>
+      <span className="badge">{value}</span>
     </div>
   );
 }
@@ -236,20 +286,32 @@ function ProgressStat({ label, value, total, color }: { label: string, value: nu
 function ActionCard({
   href,
   title,
-  description
+  description,
 }: {
   href: string;
   title: string;
   description: string;
 }) {
   return (
-    <Link href={href} className="card" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-      <div style={{ background: 'var(--accent-color)', width: '36px', height: '36px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7C4C2C' }}>
-        <PlusCircle size={20} />
+    <Link href={href} className="card" style={{ display: "flex", gap: "1rem" }}>
+      <div
+        style={{
+          background: "var(--accent-color)",
+          width: "36px",
+          height: "36px",
+          borderRadius: "10px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <PlusCircle size={18} />
       </div>
       <div>
-        <h4 style={{ margin: 0, fontSize: '0.9rem' }}>{title}</h4>
-        <p className="text-muted" style={{ margin: 0, fontSize: '0.75rem' }}>{description}</p>
+        <h4 style={{ margin: 0 }}>{title}</h4>
+        <p className="text-muted" style={{ margin: 0, fontSize: "0.75rem" }}>
+          {description}
+        </p>
       </div>
     </Link>
   );

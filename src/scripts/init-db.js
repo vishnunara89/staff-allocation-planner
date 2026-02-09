@@ -2,24 +2,13 @@ const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
 
-const dbPath = path.join(process.cwd(), 'staff-planner-v2.db');
-
-// Force delete existing corrupted or incomplete database
-if (fs.existsSync(dbPath)) {
-    try {
-        fs.unlinkSync(dbPath);
-        console.log('Cleared existing database.');
-    } catch (e) {
-        console.warn('Could not delete existing DB file, it might be in use.');
-    }
-}
-
+const dbPath = path.join(process.cwd(), 'staff-planner.db');
 const db = new Database(dbPath);
 
-console.log(`Initializing COMPREHENSIVE database at ${dbPath}`);
+console.log(`Initializing database at ${dbPath}`);
 
 const schema = `
-CREATE TABLE venues (
+CREATE TABLE IF NOT EXISTS venues (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     type TEXT,
@@ -27,13 +16,13 @@ CREATE TABLE venues (
     notes TEXT
 );
 
-CREATE TABLE roles (
+CREATE TABLE IF NOT EXISTS roles (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     category TEXT
 );
 
-CREATE TABLE staffing_rules (
+CREATE TABLE IF NOT EXISTS staffing_rules (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     venue_id INTEGER,
     department TEXT,
@@ -49,7 +38,7 @@ CREATE TABLE staffing_rules (
     FOREIGN KEY(role_id) REFERENCES roles(id)
 );
 
-CREATE TABLE staff (
+CREATE TABLE IF NOT EXISTS staff (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     full_name TEXT NOT NULL,
     primary_role_id INTEGER,
@@ -66,7 +55,7 @@ CREATE TABLE staff (
     FOREIGN KEY(home_base_venue_id) REFERENCES venues(id)
 );
 
-CREATE TABLE events (
+CREATE TABLE IF NOT EXISTS events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     date TEXT NOT NULL,
     venue_id INTEGER,
@@ -79,7 +68,7 @@ CREATE TABLE events (
     FOREIGN KEY(venue_id) REFERENCES venues(id)
 );
 
-CREATE TABLE staffing_plans (
+CREATE TABLE IF NOT EXISTS staffing_plans (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     event_date TEXT,
     venue_id INTEGER,
@@ -91,85 +80,30 @@ CREATE TABLE staffing_plans (
     FOREIGN KEY(staff_id) REFERENCES staff(id),
     FOREIGN KEY(assigned_role_id) REFERENCES roles(id)
 );
-
-CREATE TABLE venue_manning_tables (
-    venue_id INTEGER,
-    department TEXT,
-    config_json TEXT, -- JSON
-    updated_at TEXT,
-    PRIMARY KEY (venue_id, department),
-    FOREIGN KEY(venue_id) REFERENCES venues(id)
-);
-
-CREATE TABLE manning_brackets (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    venue_id INTEGER,
-    department TEXT,
-    guest_min INTEGER,
-    guest_max INTEGER,
-    counts_json TEXT, -- JSON
-    notes TEXT,
-    source TEXT,
-    updated_at TEXT,
-    FOREIGN KEY(venue_id) REFERENCES venues(id)
-);
-
-CREATE TABLE requirements_catalog (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    type TEXT NOT NULL, -- 'skill', 'language', 'other'
-    value TEXT NOT NULL
-);
-
--- Index for performance
-CREATE INDEX idx_staffing_plans_date ON staffing_plans(event_date);
-CREATE INDEX idx_events_date ON events(date);
 `;
 
 db.exec(schema);
 
-// --- SEED INITIAL DATA ---
+// Seed initial data?
+// Check if generic roles exist
+const rolesCount = db.prepare('SELECT count(*) as count FROM roles').get();
+if (rolesCount.count === 0) {
+    console.log('Seeding initial roles...');
+    const insertRole = db.prepare('INSERT INTO roles (name, category) VALUES (?, ?)');
+    const roles = [
+        ['Waiter', 'Service'],
+        ['Runner', 'Service'],
+        ['Supervisor', 'Service'],
+        ['Manager', 'Management'],
+        ['Bartender', 'Bar'],
+        ['Barback', 'Bar'],
+        ['Bar Supervisor', 'Bar'],
+        ['Sommelier', 'Service'],
+        ['Host', 'Service'],
+        ['Cashier', 'Service']
+    ];
+    roles.forEach(role => insertRole.run(role));
+}
 
-// 1. Roles
-console.log('Seeding initial roles...');
-const insertRole = db.prepare('INSERT INTO roles (name, category) VALUES (?, ?)');
-const roles = [
-    ['Waiter', 'Service'],
-    ['Runner', 'Service'],
-    ['Supervisor', 'Service'],
-    ['Manager', 'Management'],
-    ['Bartender', 'Bar'],
-    ['Barback', 'Bar'],
-    ['Bar Supervisor', 'Bar'],
-    ['Sommelier', 'Service'],
-    ['Host', 'Service'],
-    ['Cashier', 'Service'],
-    ['Busser', 'Service'],
-    ['Head Waiter', 'Service']
-];
-roles.forEach(role => insertRole.run(role));
-
-// 2. Venues (Initial ones for better UX)
-console.log('Seeding initial venues...');
-const insertVenue = db.prepare('INSERT INTO venues (name, type, default_service_style) VALUES (?, ?, ?)');
-const venues = [
-    ['SONARA', 'camp', 'sharing'],
-    ['NEST', 'camp', 'buffet'],
-    ['LADY NARA', 'private', 'set_menu']
-];
-venues.forEach(v => insertVenue.run(v));
-
-// 3. Requirements Catalog
-console.log('Seeding requirements catalog...');
-const insertReq = db.prepare('INSERT INTO requirements_catalog (type, value) VALUES (?, ?)');
-const standardReqs = [
-    ['language', 'Arabic'],
-    ['language', 'French'],
-    ['language', 'Russian'],
-    ['skill', 'Wine Service'],
-    ['skill', 'Silver Service'],
-    ['skill', 'Cocktail Making']
-];
-standardReqs.forEach(r => insertReq.run(r));
-
-console.log('✅ Database fully initialized with comprehensive schema and seeds.');
+console.log('Database initialized successfully.');
 db.close();

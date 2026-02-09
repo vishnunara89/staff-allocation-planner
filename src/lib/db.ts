@@ -2,7 +2,7 @@ import Database from "better-sqlite3";
 import type { Database as DatabaseType } from "better-sqlite3";
 import path from "path";
 
-const dbPath = path.join(process.cwd(), "staff-planner.db");
+const dbPath = path.join(process.cwd(), "staff-planner-v2.db");
 
 // Prevent multiple DB instances in dev (Next.js hot reload)
 const globalForDb = global as unknown as {

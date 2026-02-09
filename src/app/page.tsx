@@ -205,9 +205,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* =====================
-          MANAGEMENT ACTIONS
-      ===================== */}
+     
       <section>
         <h3>Management Actions</h3>
 

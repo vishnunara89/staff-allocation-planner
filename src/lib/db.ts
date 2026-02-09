@@ -4,6 +4,7 @@ import path from "path";
 
 import { ensureUsersExist } from "./ensureUsersExist";
 import { ensurePlansExist } from "./ensurePlansExist";
+import { ensureManagerVenuesExist } from "./ensureManagerVenuesExist";
 
 const dbPath = path.join(process.cwd(), "staff-planner.db");
 
@@ -16,24 +17,20 @@ let db: DatabaseType;
 
 if (!globalForDb.sqlite) {
   try {
-    const database = new Database(dbPath, {
-      verbose:
-        process.env.NODE_ENV === "development" ? console.log : undefined,
-    });
+    const database = new Database(dbPath);
 
     /* =====================
        SQLITE BEST PRACTICES
     ===================== */
-
     database.pragma("journal_mode = WAL");
     database.pragma("foreign_keys = ON");
 
     /* =====================
        ENSURE TABLES EXIST
     ===================== */
-
     ensureUsersExist(database);
     ensurePlansExist(database);
+    ensureManagerVenuesExist(database);
 
     globalForDb.sqlite = database;
 

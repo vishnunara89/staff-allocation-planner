@@ -1,18 +1,29 @@
 import { NextResponse } from "next/server";
 import db from "@/lib/db";
+import bcrypt from "bcryptjs";
 
 export const dynamic = "force-dynamic";
 
+/* =====================
+   DB USER TYPE
+===================== */
 type DbUser = {
   id: number;
+  username: string;
+  password: string;
   role: "admin" | "manager";
 };
 
+/* =====================
+   POST – LOGIN
+===================== */
 export async function POST(req: Request) {
   try {
     const { username, password } = await req.json();
 
-    // ✅ Validate input
+    /* =====================
+       VALIDATION
+    ===================== */
     if (!username || !password) {
       return NextResponse.json(
         { error: "Username and password required" },
@@ -20,14 +31,19 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ Fetch user
+    /* =====================
+       FETCH USER
+    ===================== */
     const user = db
       .prepare(
-        "SELECT id, role FROM users WHERE username = ? AND password = ?"
+        `
+        SELECT id, username, password, role
+        FROM users
+        WHERE username = ?
+        `
       )
-      .get(username, password) as DbUser | undefined;
+      .get(username) as DbUser | undefined;
 
-    // ❌ Invalid credentials
     if (!user) {
       return NextResponse.json(
         { error: "Invalid credentials" },
@@ -35,13 +51,32 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ Create response
+    /* =====================
+       PASSWORD CHECK
+    ===================== */
+    const passwordMatch = await bcrypt.compare(
+      password,
+      user.password
+    );
+
+    if (!passwordMatch) {
+      return NextResponse.json(
+        { error: "Invalid credentials" },
+        { status: 401 }
+      );
+    }
+
+    /* =====================
+       CREATE RESPONSE
+    ===================== */
     const response = NextResponse.json({
       success: true,
-      role: user.role,
+      role: user.role, // admin | manager
     });
 
-    // ✅ SET COOKIE (CORRECT SYNTAX)
+    /* =====================
+       SET AUTH COOKIE
+    ===================== */
     response.cookies.set(
       "user",
       JSON.stringify({

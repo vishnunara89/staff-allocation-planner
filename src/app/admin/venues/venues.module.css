@@ -263,11 +263,151 @@
     bottom: -1px;
     left: 0;
     right: 0;
-    height: 3px;
-    background: var(--primary-color);
-    border-radius: 3px 3px 0 0;
+    background: #f8fafc;
+    z-index: 10;
+    text-align: left !important;
+    min-width: 180px;
 }
 
-.tabContent {
-    margin-top: 2rem;
+.excelGrid tbody .stickyCol {
+    background: white;
+    font-weight: 700;
+    color: var(--secondary-color);
+}
+
+.bracketHeader {
+    position: relative;
+    min-width: 110px;
+}
+
+.bracketInput {
+    width: 100%;
+    border: 1px solid transparent;
+    background: transparent;
+    text-align: center;
+    font-weight: 800;
+    color: var(--secondary-color);
+    outline: none;
+    padding: 0.25rem;
+}
+
+.bracketInput:focus {
+    background: white;
+    border-color: var(--primary-color);
+    border-radius: 4px;
+}
+
+.removeBracketBtn,
+.removeRoleBtn {
+    color: #ef4444;
+    cursor: pointer;
+    opacity: 0.3;
+    transition: opacity 0.2s;
+    background: none;
+    border: none;
+    font-weight: bold;
+}
+
+.removeBracketBtn:hover,
+.removeRoleBtn:hover {
+    opacity: 1;
+}
+
+.addBracketBtn {
+    background: rgba(124, 76, 44, 0.05);
+    color: var(--primary-color);
+    border: 1.5px dashed var(--primary-color);
+    padding: 0.35rem 0.75rem;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.addBracketBtn:hover {
+    background: var(--primary-color);
+    color: white;
+}
+
+.roleInput {
+    width: 85%;
+    border: 1px solid transparent;
+    background: transparent;
+    font-weight: 700;
+    color: var(--secondary-color);
+    outline: none;
+    padding: 0.25rem;
+}
+
+.roleInput:focus {
+    background: #f8fafc;
+    border-radius: 4px;
+}
+
+.countInput {
+    width: 50px;
+    padding: 0.4rem;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
+    text-align: center;
+    font-weight: 700;
+    color: var(--secondary-color);
+    outline: none;
+}
+
+.countInput:focus {
+    border-color: var(--primary-color);
+    background: #fff;
+}
+
+.templateSelector {
+    display: flex;
+    align-items: flex-end;
+    gap: 1.25rem;
+}
+
+.templateControl {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.templateControl label {
+    font-weight: 700;
+    font-size: 0.75rem;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.select {
+    padding: 0 2.5rem 0 1rem;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    background: #f8fafc;
+    color: var(--secondary-color);
+    font-weight: 600;
+    outline: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    height: 42px;
+}
+
+.gridActions {
+    display: flex;
+    justify-content: flex-start;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }

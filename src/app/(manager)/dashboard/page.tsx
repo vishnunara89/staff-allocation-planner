@@ -134,9 +134,6 @@ export default function DashboardPage() {
       <header
         style={{
           marginBottom: "2.5rem",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
         }}
       >
         <div>
@@ -145,24 +142,6 @@ export default function DashboardPage() {
             High-level overview of venues, staffing, and operational planning
           </p>
         </div>
-
-        <button
-          onClick={handleLogout}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "0.5rem",
-            padding: "8px 12px",
-            borderRadius: "8px",
-            border: "1px solid #e5e7eb",
-            background: "#fff",
-            cursor: "pointer",
-            color: "#b91c1c",
-          }}
-        >
-          <LogOut size={16} />
-          Logout
-        </button>
       </header>
 
       {/* =====================

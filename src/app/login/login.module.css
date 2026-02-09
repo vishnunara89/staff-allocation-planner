@@ -1,0 +1,211 @@
+.loginOverlay {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: var(--bg-color);
+    /* Corrected: Use light app background */
+    position: relative;
+    overflow: hidden;
+    padding: 20px;
+}
+
+.loginOverlay::before {
+    content: '';
+    position: absolute;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(124, 76, 44, 0.03) 0%, transparent 70%);
+    top: -50%;
+    left: -50%;
+    animation: rotate 30s linear infinite;
+}
+
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.loginCard {
+    width: 100%;
+    max-width: 420px;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 24px;
+    border: 1px solid rgba(124, 76, 44, 0.1);
+    padding: 3rem 2.5rem;
+    box-shadow: 0 20px 40px -15px rgba(26, 18, 11, 0.1);
+    z-index: 10;
+    animation: slideUpFade 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideUpFade {
+    from {
+        opacity: 0;
+        transform: translateY(40px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+}
+
+.brand {
+    font-family: var(--font-cormorant), serif;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    /* Changed to dark Espresso */
+    margin: 0;
+    letter-spacing: 0.05em;
+}
+
+.subtitle {
+    font-size: 0.9rem;
+    color: var(--muted-color);
+    margin-top: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    font-weight: 600;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.inputGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.inputWrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.inputWrapper span {
+    position: absolute;
+    left: 1rem;
+    color: var(--muted-color);
+}
+
+.input {
+    width: 100%;
+    background: #FFF;
+    border: 1.5px solid var(--border-color);
+    border-radius: 12px;
+    padding: 0.85rem 1rem 0.85rem 3rem;
+    color: var(--text-color);
+    font-family: var(--font-outfit), sans-serif;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    outline: none;
+}
+
+.input:focus {
+    border-color: var(--primary-color);
+    background: #FFF;
+    box-shadow: 0 0 0 4px rgba(124, 76, 44, 0.1);
+}
+
+.input::placeholder {
+    color: #A1A1AA;
+}
+
+.loginButton {
+    background: var(--primary-color);
+    /* Keep dark Espresso for button */
+    color: #FFF;
+    border: none;
+    border-radius: 12px;
+    padding: 1rem;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    margin-top: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    box-shadow: 0 10px 20px -5px rgba(124, 76, 44, 0.3);
+}
+
+.loginButton:hover:not(:disabled) {
+    transform: translateY(-2px);
+    opacity: 0.95;
+    box-shadow: 0 15px 30px -10px rgba(124, 76, 44, 0.4);
+}
+
+.loginButton:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.loginButton:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.error {
+    background: #FEF2F2;
+    border: 1px solid #FECACA;
+    color: #991B1B;
+    padding: 0.75rem;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    text-align: center;
+    animation: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes shake {
+
+    10%,
+    90% {
+        transform: translate3d(-1px, 0, 0);
+    }
+
+    20%,
+    80% {
+        transform: translate3d(2px, 0, 0);
+    }
+
+    30%,
+    50%,
+    70% {
+        transform: translate3d(-4px, 0, 0);
+    }
+
+    40%,
+    60% {
+        transform: translate3d(4px, 0, 0);
+    }
+}
+
+.footer {
+    margin-top: 2rem;
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--muted-color);
+}
+
+.version {
+    font-family: monospace;
+    opacity: 0.5;
+    margin-top: 0.5rem;
+}

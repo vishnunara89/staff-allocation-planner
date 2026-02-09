@@ -361,6 +361,40 @@
     background: #fff;
 }
 
+.templateSelector {
+    display: flex;
+    align-items: flex-end;
+    gap: 1.25rem;
+}
+
+.templateControl {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.templateControl label {
+    font-weight: 700;
+    font-size: 0.75rem;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.select {
+    padding: 0 2.5rem 0 1rem;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    background: #f8fafc;
+    color: var(--secondary-color);
+    font-weight: 600;
+    outline: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    height: 42px;
+}
+
 .gridActions {
     display: flex;
     justify-content: flex-start;

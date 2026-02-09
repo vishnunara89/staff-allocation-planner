@@ -24,7 +24,7 @@ interface VenueDetailProps {
     params: { id: string };
 }
 
-type TabType = 'Overview' | 'Staffing Rules' | 'Manning Tables';
+type TabType = 'Overview' | 'Staffing Rules';
 
 export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
     const [activeTab, setActiveTab] = useState<TabType>('Overview');
@@ -119,8 +119,8 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                     </div>
                 </div>
 
-                <nav className={styles.tabs}>
-                    {(['Overview', 'Staffing Rules', 'Manning Tables'] as TabType[]).map((tab) => (
+                <div className={styles.tabs}>
+                    {(['Overview', 'Staffing Rules'] as TabType[]).map((tab) => (
                         <div
                             key={tab}
                             className={`${styles.tab} ${activeTab === tab ? styles.activeTab : ''}`}
@@ -129,7 +129,7 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                             {tab}
                         </div>
                     ))}
-                </nav>
+                </div>
 
                 <div className={styles.tabContent}>
                     {activeTab === 'Overview' && (
@@ -142,9 +142,9 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
 
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }}>
                                     {[
-                                        { label: 'Active Rules', value: rules.length, icon: Settings },
+                                        { label: 'Rules Active', value: manningConfig.rows.length > 0 ? 'Yes' : 'No', icon: Settings },
                                         { label: 'Upcoming Events', value: '—', icon: Calendar },
-                                        { label: 'Manning Tables', value: manningTables.length, icon: Database },
+                                        { label: 'Saved Tables', value: manningTables.length, icon: Database },
                                     ].map((stat, i) => (
                                         <div key={i} style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
                                             <stat.icon size={20} style={{ color: 'var(--primary-color)', marginBottom: '0.75rem' }} />
@@ -171,51 +171,21 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                     )}
 
                     {activeTab === 'Staffing Rules' && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <h3>Staffing Rules ({rules.length})</h3>
-                                <Link href="/admin/rules" className={styles.viewAllBtn} style={{ background: 'var(--primary-color)', color: 'white', padding: '0.5rem 1rem', borderRadius: '8px', textDecoration: 'none', fontWeight: 600, fontSize: '0.85rem' }}>
-                                    Manage All Rules
-                                </Link>
-                            </div>
-                            {rules.length === 0 ? (
-                                <div style={{ padding: '3rem', textAlign: 'center', background: '#f8fafc', borderRadius: '16px', border: '1px dashed #e2e8f0' }}>
-                                    <Settings size={32} style={{ color: '#cbd5e1', marginBottom: '1rem' }} />
-                                    <p>No special staffing rules defined for this venue.</p>
-                                </div>
-                            ) : (
-                                <div style={{ display: 'grid', gap: '0.75rem' }}>
-                                    {rules.map((rule: any) => (
-                                        <div key={rule.id} style={{ padding: '1rem', background: 'white', border: '1px solid #f1f5f9', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <div>
-                                                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--primary-color)', textTransform: 'uppercase' }}>{rule.department}</span>
-                                                <div style={{ fontWeight: 600 }}>Role ID: {rule.role_id}</div>
-                                            </div>
-                                            <div style={{ textAlign: 'right', fontSize: '0.85rem', color: '#64748b' }}>
-                                                {rule.ratio_guests && <div>{rule.ratio_staff}:{rule.ratio_guests} PAX</div>}
-                                                {rule.min_required > 0 && <div>Min: {rule.min_required}</div>}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {activeTab === 'Manning Tables' && (
                         <div className={styles.manningEditor}>
                             <div className={styles.manningHeader}>
                                 <div className={styles.templateSelector}>
-                                    <label>Template:</label>
-                                    <select
-                                        value={selectedTemplate}
-                                        onChange={e => setSelectedTemplate(e.target.value)}
-                                        className={styles.select}
-                                    >
-                                        {MANNING_TEMPLATES.map(t => (
-                                            <option key={t.name} value={t.name}>{t.name}</option>
-                                        ))}
-                                    </select>
+                                    <div className={styles.templateControl}>
+                                        <label>Template</label>
+                                        <select
+                                            value={selectedTemplate}
+                                            onChange={e => setSelectedTemplate(e.target.value)}
+                                            className={styles.select}
+                                        >
+                                            {MANNING_TEMPLATES.map(t => (
+                                                <option key={t.name} value={t.name}>{t.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
                                     <button
                                         onClick={() => {
                                             const template = MANNING_TEMPLATES.find(t => t.name === selectedTemplate);
@@ -226,7 +196,7 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                                             setManningConfig(template.configs[firstDept]);
                                         }}
                                         className={styles.addBracketBtn}
-                                        style={{ borderStyle: 'solid', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                                        style={{ borderStyle: 'solid', display: 'flex', alignItems: 'center', gap: '0.4rem', height: '42px' }}
                                     >
                                         <RotateCcw size={14} /> Load Template
                                     </button>
@@ -248,7 +218,7 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                                                     })
                                                 });
                                                 if (res.ok) {
-                                                    setManningFeedback('Operational rules updated!');
+                                                    setManningFeedback('Staffing rules updated!');
                                                     setTimeout(() => setManningFeedback(''), 3000);
                                                 }
                                             } catch (err) {
@@ -258,10 +228,10 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                                             }
                                         }}
                                         className={styles.viewAllBtn}
-                                        style={{ background: 'var(--primary-color)', color: 'white', border: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                                        style={{ background: 'var(--primary-color)', color: 'white', border: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem', height: '42px', padding: '0 1.5rem' }}
                                         disabled={savingManning}
                                     >
-                                        <Save size={16} /> {savingManning ? 'Syncing...' : 'Save Manning Rules'}
+                                        <Save size={16} /> {savingManning ? 'Syncing...' : 'Save Staffing Rules'}
                                     </button>
                                 </div>
                             </div>

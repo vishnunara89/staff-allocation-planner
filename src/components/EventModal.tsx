@@ -30,6 +30,7 @@ export default function EventModal({
     selectedDate
 }: EventModalProps) {
     const [formData, setFormData] = useState<Partial<CreateEventDTO>>({
+        date: selectedDate,
         guest_count: 50,
         priority: 'normal',
         start_time: '18:00',
@@ -48,6 +49,7 @@ export default function EventModal({
             setFormData(editingEvent);
         } else {
             setFormData({
+                date: selectedDate,
                 guest_count: 50,
                 priority: 'normal',
                 start_time: '18:00',
@@ -55,7 +57,7 @@ export default function EventModal({
                 special_requirements: '[]'
             });
         }
-    }, [editingEvent, isOpen]);
+    }, [editingEvent, isOpen, selectedDate]);
 
     useEffect(() => {
         if (isOpen) {

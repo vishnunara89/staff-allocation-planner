@@ -1,0 +1,123 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.plansTableContainer {
+    background: white;
+    border-radius: 20px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th {
+    text-align: left;
+    padding: 1.25rem 1.5rem;
+    background: #f8fafc;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #64748b;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.table td {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 0.9rem;
+}
+
+.roleBreakdown {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.rolePill {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 4px 8px;
+    background: #f1f5f9;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #475569;
+}
+
+.roleCount {
+    background: white;
+    padding: 1px 5px;
+    border-radius: 4px;
+    color: var(--primary-color);
+}
+
+.logContainer {
+    background: white;
+    border-radius: 20px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+}
+
+.logItem {
+    padding: 1.5rem;
+    border-bottom: 1px solid #f1f5f9;
+    display: grid;
+    grid-template-columns: 80px 1fr 150px;
+    align-items: center;
+    gap: 2rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.logItem:hover {
+    background: #f8fafc;
+}
+
+.logTime {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #94a3b8;
+}
+
+.logContent {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.logIcon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.logText {
+    font-size: 0.95rem;
+    color: #1e293b;
+}
+
+.logText b {
+    color: var(--primary-color);
+}
+
+.logEntity {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #64748b;
+    text-align: right;
+}

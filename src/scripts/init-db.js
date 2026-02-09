@@ -135,16 +135,21 @@ const insertRole = db.prepare('INSERT INTO roles (name, category) VALUES (?, ?)'
 const roles = [
     ['Waiter', 'Service'],
     ['Runner', 'Service'],
-    ['Supervisor', 'Service'],
+    ['Head Waiter', 'Service'],
     ['Manager', 'Management'],
+    ['Assistant Manager', 'Management'],
     ['Bartender', 'Bar'],
     ['Barback', 'Bar'],
+    ['Head Bartender', 'Bar'],
     ['Bar Supervisor', 'Bar'],
+    ['Supervisor', 'Service'],
     ['Sommelier', 'Service'],
     ['Host', 'Service'],
     ['Cashier', 'Service'],
     ['Busser', 'Service'],
-    ['Head Waiter', 'Service']
+    ['Shisha Operator', 'Service'],
+    ['Housekeeper', 'Other'],
+    ['Stewarding', 'Other']
 ];
 roles.forEach(role => insertRole.run(role));
 

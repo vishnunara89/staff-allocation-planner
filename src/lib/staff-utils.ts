@@ -65,10 +65,41 @@ export function exportToCSV(staff: StaffMember[], roles: { id: number, name: str
  * Generates a blank CSV template for staff import
  */
 export function downloadCSVTemplate() {
-    const headers = ['full_name', 'primary_role', 'secondary_roles', 'english_proficiency', 'other_languages', 'special_skills', 'home_base_venue', 'employment_type', 'availability_status', 'notes'];
-    const example = ['John Doe', 'Waiter', 'Bartender', 'good', 'French,Spanish', 'First Aid', 'Sonara Camp', 'internal', 'available', 'Friendly and experienced'];
+    const headers = [
+        'full_name',
+        'phone_number',
+        'primary_role',
+        'secondary_roles',
+        'english_proficiency',
+        'other_languages',
+        'special_skills',
+        'home_base_venue',
+        'employment_type',
+        'availability_status',
+        'notes'
+    ];
 
-    const csvContent = [headers.join(','), example.map(v => `"${v}"`).join(',')].join('\n');
+    const comments = [
+        '# ROLES: Waiter, Runner, Supervisor, Manager, Bartender, Barback, Bar Supervisor, Sommelier, Host, Cashier, Busser, Head Waiter',
+        '# VENUES: SONARA, NEST, LADY NARA',
+        '# ENGLISH: basic, medium, good, fluent',
+        '# EMPLOYMENT: internal, external, freelancer',
+        '# STATUS: available, off, leave'
+    ];
+
+    const examples = [
+        ['John Doe', '+971501234567', 'Waiter', 'Bartender', 'good', 'French,Spanish', 'First Aid,VIP', 'SONARA', 'internal', 'available', 'Experienced server'],
+        ['Jane Smith', '+971509876543', 'Manager', '', 'fluent', 'Arabic', 'Leadership', 'NEST', 'internal', 'available', 'Guest relations specialist'],
+        ['Alex Brown', '+971505554433', 'Bartender', 'Waiter', 'medium', '', 'Mixology', 'LADY NARA', 'freelancer', 'available', 'Part-time support']
+    ];
+
+    const csvContent = [
+        headers.join(','),
+        ...examples.map(row => row.map(v => `"${v}"`).join(',')),
+        '',
+        ...comments
+    ].join('\n');
+
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
 

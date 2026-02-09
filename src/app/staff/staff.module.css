@@ -387,3 +387,159 @@
         width: 100% !important;
     }
 }
+
+/* Modal Form Layout & Elements (2026 Refined) */
+.formGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem 2rem;
+}
+
+.formGroup {
+    display: flex;
+    flex-direction: column;
+}
+
+.formGroupFull {
+    grid-column: 1 / -1;
+}
+
+.formGroup label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--muted-color);
+    margin-bottom: 0.6rem;
+    display: block;
+}
+
+.formInput,
+.formTextarea {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    font-size: 0.9rem;
+    background: #fff;
+    color: var(--text-color);
+    transition: all 0.25s ease;
+    outline: none;
+    font-family: inherit;
+}
+
+.formInput:focus,
+.formTextarea:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 4px rgba(124, 76, 44, 0.08);
+}
+
+.formTextarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+/* Tag Entry Styling */
+.tagEntryContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    background: #F9F9F8;
+    padding: 1rem;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+}
+
+.tagInputWrapper,
+.langEntryWrapper {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.tagInputWrapper input,
+.langEntryWrapper input {
+    flex: 1;
+    height: 38px;
+    padding: 0 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    outline: none;
+}
+
+.tagAddButton {
+    height: 38px;
+    padding: 0 1.25rem;
+    background: var(--secondary-color);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.tagAddButton:hover {
+    background: var(--primary-color);
+}
+
+.activeTags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+}
+
+.editableTag {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.skillTag {
+    background: #EFE8E3;
+    color: var(--primary-color);
+    border: 1px solid rgba(124, 76, 44, 0.1);
+}
+
+.langTag {
+    background: #F1E4C3;
+    color: var(--secondary-color);
+    border: 1px solid rgba(26, 18, 11, 0.1);
+}
+
+.removeTagBtn {
+    background: transparent;
+    border: none;
+    color: currentColor;
+    font-size: 1.1rem;
+    line-height: 1;
+    padding: 0;
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.removeTagBtn:hover {
+    opacity: 1;
+}
+
+.langSelect {
+    width: 120px !important;
+}
+
+.modalFooterLeft {
+    margin-right: auto;
+}
+
+@media (max-width: 768px) {
+    .formGrid {
+        grid-template-columns: 1fr;
+    }
+}

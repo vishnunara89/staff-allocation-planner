@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Event, Venue, Role, Plan, PlanAssignment, StaffMember, StaffingRule } from '@/types';
+import { Event, Venue, Role, Plan, PlanAssignment, StaffMember, StaffingRule, PlanRequirement } from '@/types';
 import styles from './plans.module.css';
 import eventStyles from '../events/events.module.css';
 import NewPlanModal from '@/components/NewPlanModal';
@@ -76,28 +76,81 @@ export default function PlansPage() {
         // MVP Logic: Generate plan client-side (mocking the complex backend logic for now)
         setLoading(true);
         try {
-            // 1. Fetch Staff and Rules
-            const [staffRes, rulesRes] = await Promise.all([
+            // 1. Fetch Staff, Rules, and Manning Tables
+            const [staffRes, rulesRes, manningRes] = await Promise.all([
                 fetch('/api/staff'),
-                fetch('/api/rules')
+                fetch('/api/rules'),
+                fetch(`/api/manning-tables?venue_id=${event.venue_id}`)
             ]);
 
             const staffList: StaffMember[] = await staffRes.json();
             const rulesList: StaffingRule[] = await rulesRes.json();
+            const manningTables = await manningRes.json();
 
-            // 2. Determine Requirements based on Rules
-            const eventRules = rulesList.filter(r => r.venue_id === event.venue_id);
-            const requirements = eventRules.map(rule => {
-                const count = Math.ceil(event.guest_count / rule.ratio_guests); // Simplified ratio logic
-                const roleName = getRoleName(rule.role_id);
-                return {
-                    role_id: rule.role_id,
-                    role_name: roleName,
+            let requirements: PlanRequirement[] = [];
+
+            // 2. Determine Requirements
+            if (manningTables && manningTables.length > 0) {
+                // EXCEL RULE LOGIC
+                console.log('Using Excel Manning Rules for plan generation');
+                const reqMap = new Map<number, number>();
+
+                manningTables.forEach((table: any) => {
+                    const config = table.config;
+                    const brackets = config.brackets;
+
+                    // a. Find the matching bracket index
+                    let bracketIndex = -1;
+                    for (let i = 0; i < brackets.length; i++) {
+                        const [min, max] = brackets[i].split('-').map(Number);
+                        if (event.guest_count >= min && (event.guest_count <= max || i === brackets.length - 1)) {
+                            bracketIndex = i;
+                            break;
+                        }
+                    }
+
+                    if (bracketIndex !== -1) {
+                        // b. Map roles and counts
+                        config.rows.forEach((row: any) => {
+                            const roleName = row.role.toUpperCase().trim();
+                            // Find role ID by name
+                            const role = roles.find(r => r.name.toUpperCase().trim() === roleName);
+                            if (role) {
+                                const count = row.counts[bracketIndex];
+                                if (count > 0) {
+                                    reqMap.set(role.id, (reqMap.get(role.id) || 0) + count);
+                                }
+                            } else {
+                                console.warn(`Role mapping failed for: ${row.role}`);
+                            }
+                        });
+                    }
+                });
+
+                // Convert map to requirements
+                requirements = Array.from(reqMap.entries()).map(([roleId, count]) => ({
+                    role_id: roleId,
+                    role_name: getRoleName(roleId),
                     count: count,
                     filled: 0,
                     assignments: [] as PlanAssignment[]
-                };
-            });
+                }));
+            } else {
+                // FALLBACK TO RATIO RULES
+                console.log('No Excel Manning Rules found, falling back to staffing rules (ratio)');
+                const eventRules = rulesList.filter(r => r.venue_id === event.venue_id);
+                requirements = eventRules.map(rule => {
+                    const count = Math.ceil(event.guest_count / rule.ratio_guests);
+                    const roleName = getRoleName(rule.role_id);
+                    return {
+                        role_id: rule.role_id,
+                        role_name: roleName,
+                        count: count,
+                        filled: 0,
+                        assignments: [] as PlanAssignment[]
+                    };
+                });
+            }
 
             // 3. Assign Staff (Greedy Algorithm for MVP)
             let assignedStaffIds = new Set<number>();
@@ -174,7 +227,7 @@ export default function PlansPage() {
                 guest_count: event.guest_count,
                 requirements: requirements,
                 total_staff: requirements.reduce((acc, r) => acc + r.assignments.length, 0),
-                total_freelancers: requirements.reduce((acc, r) => acc + r.assignments.filter(a => a.is_freelance).length, 0),
+                total_freelancers: requirements.reduce((acc, r) => acc + r.assignments.filter((a: PlanAssignment) => a.is_freelance).length, 0),
                 status: 'draft'
             };
 

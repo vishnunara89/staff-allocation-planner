@@ -396,7 +396,10 @@ export default function StaffPage() {
                     <div className="modal-container" onClick={e => e.stopPropagation()}>
                         <div className="modal-header">
                             <div className="modal-header-title">
-                                <h3>{modalMode === 'add' ? 'Add New Staff' : 'Edit Staff Member'}</h3>
+                                <h3>{modalMode === 'add' ? 'Add New Staff Member' : 'Edit Staff Member'}</h3>
+                                <p style={{ fontSize: '0.8rem', color: 'var(--muted-color)', marginTop: '0.2rem' }}>
+                                    {modalMode === 'add' ? 'Enter details for the new fleet member.' : `Updating profile for ${editingStaff.full_name}`}
+                                </p>
                             </div>
                             <button className="modal-close-btn" onClick={() => setIsModalOpen(false)}>×</button>
                         </div>
@@ -479,6 +482,9 @@ export default function StaffPage() {
                                                         <button type="button" onClick={() => removeSkill(skill)} className={styles.removeTagBtn}>×</button>
                                                     </span>
                                                 ))}
+                                                {(editingStaff.special_skills || []).length === 0 && (
+                                                    <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic' }}>No skills added.</span>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -517,6 +523,9 @@ export default function StaffPage() {
                                                         <button type="button" onClick={() => removeLanguage(lang)} className={styles.removeTagBtn}>×</button>
                                                     </span>
                                                 ))}
+                                                {Object.keys(editingStaff.other_languages || {}).length === 0 && (
+                                                    <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic' }}>No other languages.</span>
+                                                )}
                                             </div>
                                         </div>
                                     </div>

@@ -9,12 +9,14 @@ interface AdminEmployeeCardProps {
         name: string;
         role: string;
         phone: string;
-        status: 'Available' | 'Working' | 'On Leave' | 'Off Duty';
+        status: 'available' | 'working' | 'off' | 'leave' | string;
     };
 }
 
 export default function AdminEmployeeCard({ employee }: AdminEmployeeCardProps) {
-    const statusClass = styles[`status-${employee.status.toLowerCase().replace(' ', '-')}`];
+    const safeStatus = (employee.status || 'available').toLowerCase();
+    const statusClass = styles[`status-${safeStatus.replace(' ', '-')}`] || '';
+    const safePhone = employee.phone || '';
 
     return (
         <div className={styles.card}>
@@ -23,34 +25,35 @@ export default function AdminEmployeeCard({ employee }: AdminEmployeeCardProps) 
                     <h4 className={styles.name}>{employee.name}</h4>
                     <span className={styles.role}>{employee.role}</span>
                 </div>
-                <span className={`${styles.status} ${statusClass}`}>
-                    {employee.status}
+                <span className={`${styles.status} ${statusClass}`} style={{ textTransform: 'capitalize' }}>
+                    {employee.status || 'Available'}
                 </span>
             </div>
 
             <div className={styles.contact}>
                 <Phone size={14} />
-                <span>{employee.phone}</span>
+                <span>{safePhone || 'No phone'}</span>
             </div>
 
             <div className={styles.actions}>
                 <a
-                    href={`https://wa.me/${employee.phone.replace(/\D/g, '')}`}
+                    href={safePhone ? `https://wa.me/${safePhone.replace(/\D/g, '')}` : '#'}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`${styles.actionBtn} ${styles.whatsapp}`}
+                    className={`${styles.actionBtn} ${styles.whatsapp} ${!safePhone ? styles.disabled : ''}`}
                 >
                     <MessageCircle size={16} />
                     <span>WhatsApp</span>
                 </a>
                 <a
-                    href={`tel:${employee.phone}`}
-                    className={`${styles.actionBtn} ${styles.call}`}
+                    href={safePhone ? `tel:${safePhone}` : '#'}
+                    className={`${styles.actionBtn} ${styles.call} ${!safePhone ? styles.disabled : ''}`}
                 >
                     <Phone size={16} />
                     <span>Call</span>
                 </a>
             </div>
+
         </div>
     );
 }

@@ -4,19 +4,40 @@ import type { NextRequest } from "next/server";
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Redirect /events/new → /events
-  if (pathname === "/events/new") {
-    return NextResponse.redirect(new URL("/events", request.url));
-  }
+  // Public
+  if (pathname === "/login") return NextResponse.next();
 
-  // Redirect /plans/new → /plans
-  if (pathname === "/plans/new") {
-    return NextResponse.redirect(new URL("/plans", request.url));
+  if (pathname.startsWith("/admin") || pathname.startsWith("/dashboard")) {
+    const userCookie = request.cookies.get("user");
+
+    if (!userCookie) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+
+    let user;
+    try {
+      user = JSON.parse(userCookie.value);
+    } catch {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+
+    // Admin-only
+    if (pathname.startsWith("/admin") && user.role !== "admin") {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
+
+    // Dashboard allowed roles
+    if (
+      pathname.startsWith("/dashboard") &&
+      !["admin", "manager"].includes(user.role)
+    ) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/events/new", "/plans/new"],
+  matcher: ["/admin/:path*", "/dashboard/:path*"],
 };

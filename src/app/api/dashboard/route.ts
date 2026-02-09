@@ -5,75 +5,101 @@ export const dynamic = "force-dynamic";
 
 type CountRow = { c: number };
 
-// helper: check table exists
+/* =====================
+   TABLE CHECK
+===================== */
 function tableExists(table: string): boolean {
-  const row = db
-    .prepare(
-      `SELECT name FROM sqlite_master WHERE type='table' AND name=?`
-    )
-    .get(table);
-  return !!row;
+  try {
+    const row = db
+      .prepare(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name=? LIMIT 1"
+      )
+      .get(table);
+    return !!row;
+  } catch {
+    return false;
+  }
+}
+
+/* =====================
+   SAFE COUNT
+===================== */
+function safeCount(query: string, table: string): number {
+  if (!tableExists(table)) return 0;
+  return (db.prepare(query).get() as CountRow)?.c ?? 0;
 }
 
 export function GET() {
   try {
-    // TOTALS
-    const totalStaff =
-      (db.prepare("SELECT COUNT(*) AS c FROM staff").get() as CountRow)?.c ?? 0;
+    /* =====================
+       TOTAL COUNTS
+    ===================== */
 
-    const totalVenues =
-      (db.prepare("SELECT COUNT(*) AS c FROM venues").get() as CountRow)?.c ?? 0;
+    const totalStaff = safeCount(
+      "SELECT COUNT(*) AS c FROM staff",
+      "staff"
+    );
 
-    const upcomingEvents =
-      (db.prepare("SELECT COUNT(*) AS c FROM events").get() as CountRow)?.c ?? 0;
+    const totalVenues = safeCount(
+      "SELECT COUNT(*) AS c FROM venues",
+      "venues"
+    );
 
-    // PLANS (SAFE)
-    let activePlans = 0;
-    if (tableExists("plans")) {
-      activePlans =
-        (
-          db.prepare(
-            "SELECT COUNT(*) AS c FROM plans WHERE status = 'active'"
-          ).get() as CountRow
-        )?.c ?? 0;
-    }
+    const upcomingEvents = safeCount(
+      "SELECT COUNT(*) AS c FROM events",
+      "events"
+    );
 
-    // STAFF AVAILABILITY
-    const availableStaff =
-      (
-        db.prepare(
-          "SELECT COUNT(*) AS c FROM staff WHERE availability_status = 'available'"
-        ).get() as CountRow
-      )?.c ?? 0;
+    /* =====================
+       PLANS
+    ===================== */
+
+    const activePlans = safeCount(
+      "SELECT COUNT(*) AS c FROM plans WHERE status = 'active'",
+      "plans"
+    );
+
+    /* =====================
+       STAFF AVAILABILITY
+    ===================== */
+
+    const availableStaff = safeCount(
+      "SELECT COUNT(*) AS c FROM staff WHERE availability_status = 'available'",
+      "staff"
+    );
 
     const unavailableStaff = totalStaff - availableStaff;
 
-    // EMPLOYMENT TYPE
-    const internalStaff =
-      (
-        db.prepare(
-          "SELECT COUNT(*) AS c FROM staff WHERE employment_type = 'internal'"
-        ).get() as CountRow
-      )?.c ?? 0;
+    /* =====================
+       EMPLOYMENT TYPE
+    ===================== */
+
+    const internalStaff = safeCount(
+      "SELECT COUNT(*) AS c FROM staff WHERE employment_type = 'internal'",
+      "staff"
+    );
 
     const externalStaff = totalStaff - internalStaff;
 
-    // VENUE TYPES
-    const campVenues =
-      (
-        db.prepare(
-          "SELECT COUNT(*) AS c FROM venues WHERE type = 'camp'"
-        ).get() as CountRow
-      )?.c ?? 0;
+    /* =====================
+       VENUE TYPES
+    ===================== */
 
-    const privateVenues =
-      (
-        db.prepare(
-          "SELECT COUNT(*) AS c FROM venues WHERE type = 'private'"
-        ).get() as CountRow
-      )?.c ?? 0;
+    const campVenues = safeCount(
+      "SELECT COUNT(*) AS c FROM venues WHERE type = 'camp'",
+      "venues"
+    );
+
+    const privateVenues = safeCount(
+      "SELECT COUNT(*) AS c FROM venues WHERE type = 'private'",
+      "venues"
+    );
 
     const otherVenues = totalVenues - campVenues - privateVenues;
+
+    /* =====================
+       RESPONSE
+    ===================== */
 
     return NextResponse.json({
       venues: totalVenues,

@@ -2,33 +2,49 @@ import Database from "better-sqlite3";
 import type { Database as DatabaseType } from "better-sqlite3";
 import path from "path";
 
+import { ensureUsersExist } from "./ensureUsersExist";
+import { ensurePlansExist } from "./ensurePlansExist";
+
 const dbPath = path.join(process.cwd(), "staff-planner.db");
 
-// Prevent multiple DB instances in dev (Next.js hot reload)
+// Prevent multiple DB connections in dev (Next.js hot reload)
 const globalForDb = global as unknown as {
   sqlite?: DatabaseType;
 };
 
 let db: DatabaseType;
 
-try {
-  if (!globalForDb.sqlite) {
+if (!globalForDb.sqlite) {
+  try {
     const database = new Database(dbPath, {
       verbose:
         process.env.NODE_ENV === "development" ? console.log : undefined,
     });
 
-    // Recommended SQLite settings
+    /* =====================
+       SQLITE BEST PRACTICES
+    ===================== */
+
     database.pragma("journal_mode = WAL");
     database.pragma("foreign_keys = ON");
 
-    globalForDb.sqlite = database;
-  }
+    /* =====================
+       ENSURE TABLES EXIST
+    ===================== */
 
-  db = globalForDb.sqlite!;
-} catch (error) {
-  console.error("❌ Failed to connect to SQLite database:", error);
-  throw error;
+    ensureUsersExist(database);
+    ensurePlansExist(database);
+
+    globalForDb.sqlite = database;
+
+    if (process.env.NODE_ENV === "development") {
+      console.log("✅ SQLite database initialized");
+    }
+  } catch (error) {
+    console.error("❌ Failed to initialize database:", error);
+    throw error;
+  }
 }
 
+db = globalForDb.sqlite!;
 export default db;

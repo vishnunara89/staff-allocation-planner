@@ -360,13 +360,22 @@
 .modalTextarea {
     width: 100%;
     box-sizing: border-box;
-    /* Fix overflow issues */
-    padding: 0.75rem 1rem;
+    padding: 0 1rem;
     border: 1.5px solid #e0e0e0;
-    border-radius: 8px;
+    border-radius: 12px;
     font-size: 0.95rem;
     transition: border-color 0.2s, box-shadow 0.2s;
-    background: #fafafa;
+    background: #F8FAFC;
+}
+
+.modalInput,
+.modalSelect {
+    height: 48px;
+    padding: 0 1.25rem;
+}
+
+.modalTextarea {
+    padding: 1rem 1.25rem;
 }
 
 .modalInput:focus,

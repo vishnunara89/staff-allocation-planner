@@ -68,11 +68,11 @@ export default function AdminSidebar() {
         }
     };
 
-    const sidebarClasses = `
-    ${styles.sidebar} 
-    ${isCollapsed ? styles.collapsed : ""} 
-    ${isMobileOpen ? styles.mobileOpen : ""}
-  `;
+    const sidebarClasses = [
+        styles.sidebar,
+        isCollapsed ? styles.collapsed : "",
+        isMobileOpen ? styles.mobileOpen : ""
+    ].filter(Boolean).join(" ");
 
     return (
         <>

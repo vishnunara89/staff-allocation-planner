@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
-import db from "@/lib/db";
+import { NextResponse } from 'next/server';
+import db from '@/lib/db';
 
 /* =========================
    SAFE JSON PARSER
@@ -56,15 +56,9 @@ export async function GET(
   }
 }
 
-/* =========================
-   PUT: UPDATE EMPLOYEE
-========================= */
-export async function PUT(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const body = await request.json();
+export async function PUT(request: Request, { params }: { params: { id: string } }) {
+    try {
+        const body = await request.json();
 
     const result = db.prepare(`
       UPDATE employees SET
@@ -112,31 +106,14 @@ export async function PUT(
   }
 }
 
-/* =========================
-   DELETE: EMPLOYEE
-========================= */
-export async function DELETE(
-  _req: Request,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const result = db
-      .prepare("DELETE FROM employees WHERE id = ?")
-      .run(params.id);
-
-    if (result.changes === 0) {
-      return NextResponse.json(
-        { error: "Employee not found" },
-        { status: 404 }
-      );
+export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+    try {
+        // Optional: Check for future assignments? For now force delete OK.
+        const stmt = db.prepare('DELETE FROM staff WHERE id = ?');
+        const res = stmt.run(params.id);
+        if (res.changes === 0) return NextResponse.json({ error: 'Staff not found' }, { status: 404 });
+        return NextResponse.json({ success: true });
+    } catch (error) {
+        return NextResponse.json({ error: 'Failed to delete staff' }, { status: 500 });
     }
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("Employee DELETE error:", error);
-    return NextResponse.json(
-      { error: "Failed to delete employee" },
-      { status: 500 }
-    );
-  }
 }

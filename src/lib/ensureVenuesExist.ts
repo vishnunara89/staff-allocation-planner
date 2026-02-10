@@ -12,5 +12,22 @@ export function ensureVenuesExist(db: Database) {
     )
   `).run();
 
+  // 2. Ensure Default Venues
+  const venues = [
+    { name: 'SONARA', type: 'camp', default_service_style: 'sharing' },
+    { name: 'NEST', type: 'camp', default_service_style: 'sharing' },
+    { name: 'LADY NARA', type: 'other', default_service_style: 'plated' }
+  ];
+
+  const insert = db.prepare(`
+    INSERT OR IGNORE INTO venues (name, type, default_service_style) 
+    VALUES (@name, @type, @default_service_style)
+  `);
+
+  const insertMany = db.transaction((venues: any[]) => {
+    for (const venue of venues) insert.run(venue);
+  });
+
+  insertMany(venues);
   console.log("✅ venues table ensured");
 }

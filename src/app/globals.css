@@ -25,6 +25,12 @@
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 20px;
+
+  /* Shared Form Tokens */
+  --input-height: 48px;
+  --input-bg: #F8FAFC;
+  --input-border: #E2E8F0;
+  --input-focus-shadow: 0 0 0 4px rgba(124, 76, 44, 0.05);
 }
 
 /* =====================
@@ -80,6 +86,17 @@ body {
     margin-left: 260px;
     /* Space for fixed sidebar */
   }
+}
+
+/* Global Admin Layout Fallbacks */
+[class*="adminLayout"] {
+  display: flex !important;
+  min-height: 100vh;
+}
+
+[class*="adminContent"] {
+  flex: 1 !important;
+  min-width: 0;
 }
 
 /* =====================
@@ -249,6 +266,59 @@ button.secondary:hover {
   background: var(--bg-color);
   border-color: var(--secondary-color);
   opacity: 1;
+}
+
+/* =====================
+   REFINED FORM ELEMENTS
+   ===================== */
+.modal-input,
+.form-input-standard {
+  width: 100%;
+  height: var(--input-height);
+  padding: 0 1.25rem;
+  background: var(--input-bg);
+  border: 1.5px solid var(--input-border);
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  color: var(--text-color);
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.modal-input:focus,
+.form-input-standard:focus {
+  border-color: var(--primary-color);
+  background: white;
+  box-shadow: var(--input-focus-shadow);
+}
+
+.modal-input:disabled {
+  background: #f1f5f9;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.form-label-standard {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--secondary-color);
+  margin-bottom: 0.5rem;
+}
+
+.form-group-standard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.error-text {
+  color: var(--danger-color);
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+  font-weight: 500;
 }
 
 /* =====================

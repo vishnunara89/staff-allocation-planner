@@ -176,7 +176,7 @@ export default function AdminImportModal({ isOpen, onClose, onSuccess }: AdminIm
     if (!isOpen) return null;
 
     return (
-        <div className={styles.overlay} onClick={onClose}>
+        <div className="modal-overlay" onClick={onClose}>
             <div className={styles.container} onClick={e => e.stopPropagation()}>
                 <div className={styles.header}>
                     <h3>Bulk Employee Import</h3>
@@ -269,35 +269,34 @@ export default function AdminImportModal({ isOpen, onClose, onSuccess }: AdminIm
                     )}
                 </div>
 
-                <div className={styles.footer}>
-                    <button onClick={downloadCSVTemplate} className={styles.templateLink} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#7c4c2c' }}>
+                <div className="modal-footer">
+                    <button onClick={downloadCSVTemplate} className={styles.templateLink} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#7C4C2C', fontWeight: 600 }}>
                         <Download size={16} /> Download CSV Template
                     </button>
                     <div className={styles.actionBtns}>
                         <button
-                            className="button-secondary"
+                            className="secondary"
                             onClick={onClose}
-                            style={{ background: 'white', border: '1px solid #e2e8f0', padding: '0.75rem 1.5rem', borderRadius: '12px', fontWeight: 600, cursor: 'pointer' }}
+                            style={{ height: '48px', padding: '0 1.5rem' }}
                         >
                             Cancel
                         </button>
                         {(status === 'preview') && (
                             <button
-                                className="button-primary"
                                 onClick={handleImport}
                                 disabled={stats.valid === 0 && stats.warnings === 0}
-                                style={{ background: 'var(--primary-color)', color: 'white', border: 'none', padding: '0.75rem 2rem', borderRadius: '12px', fontWeight: 600, cursor: 'pointer', boxShadow: '0 4px 10px rgba(124, 76, 44, 0.2)', opacity: (stats.valid === 0 && stats.warnings === 0) ? 0.5 : 1 }}
+                                style={{ height: '48px', padding: '0 2rem', opacity: (stats.valid === 0 && stats.warnings === 0) ? 0.5 : 1 }}
                             >
                                 Import {stats.valid + stats.warnings} Records
                             </button>
                         )}
                         {status === 'importing' && (
-                            <button className="button-primary" disabled style={{ background: '#cbd5e1', color: '#94a3b8', border: 'none', padding: '0.75rem 2rem', borderRadius: '12px', fontWeight: 600, cursor: 'not-allowed', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <button disabled style={{ height: '48px', padding: '0 2rem', opacity: 0.7, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                 <Loader2 size={16} className="animate-spin" /> Importing...
                             </button>
                         )}
                         {status === 'complete' && (
-                            <button className="button-primary" style={{ background: '#22c55e', color: 'white', border: 'none', padding: '0.75rem 2rem', borderRadius: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <button style={{ height: '48px', padding: '0 2rem', background: '#22C55E', color: 'white', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                 <CheckCircle2 size={16} /> Done!
                             </button>
                         )}

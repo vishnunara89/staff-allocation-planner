@@ -4,10 +4,13 @@
     gap: 2rem;
 }
 
-.header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+/* Shared Form Tokens for Venues */
+.container {
+    --input-height: 48px;
+    --input-bg: #F8FAFC;
+    --input-border: #E2E8F0;
+    --input-focus-shadow: 0 0 0 4px rgba(124, 76, 44, 0.05);
+    --button-radius: 12px;
 }
 
 .headerText h2 {
@@ -317,12 +320,16 @@
     background: rgba(124, 76, 44, 0.05);
     color: var(--primary-color);
     border: 1.5px dashed var(--primary-color);
-    padding: 0.35rem 0.75rem;
-    border-radius: 8px;
+    padding: 0 1.25rem;
+    border-radius: var(--button-radius);
     font-weight: 700;
-    font-size: 0.75rem;
+    font-size: 0.85rem;
     cursor: pointer;
     transition: all 0.2s;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .addBracketBtn:hover {
@@ -383,16 +390,21 @@
 
 .select {
     padding: 0 2.5rem 0 1rem;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 10px;
-    font-size: 0.9rem;
-    background: #f8fafc;
+    border: 1.5px solid var(--input-border);
+    border-radius: 12px;
+    font-size: 0.95rem;
+    background: var(--input-bg);
     color: var(--secondary-color);
     font-weight: 600;
     outline: none;
     cursor: pointer;
     transition: all 0.2s;
-    height: 42px;
+    height: 48px;
+}
+
+.select:focus {
+    border-color: var(--primary-color);
+    box-shadow: var(--input-focus-shadow);
 }
 
 .gridActions {

@@ -50,9 +50,9 @@ export default function GlobalRulesPage() {
     const getRoleName = (id: number) => roles.find(r => r.id === id)?.name || `ID: ${id}`;
 
     const filteredRules = rules.filter(rule => {
-        const venueName = getVenueName(rule.venue_id).toLowerCase();
-        const roleName = getRoleName(rule.role_id).toLowerCase();
-        const deptName = (rule.department || "").toLowerCase();
+        const venueName = getVenueName(rule.venue_id)?.toLowerCase() || "";
+        const roleName = getRoleName(rule.role_id)?.toLowerCase() || "";
+        const deptName = (rule.department || "")?.toLowerCase() || "";
 
         const matchesSearch = venueName.includes(searchQuery.toLowerCase()) ||
             roleName.includes(searchQuery.toLowerCase()) ||

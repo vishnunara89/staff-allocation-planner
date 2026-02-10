@@ -5,6 +5,14 @@ import type { Database as DatabaseType } from "better-sqlite3";
 import { ensureUsersExist } from "./ensureUsersExist";
 import { ensurePlansExist } from "./ensurePlansExist";
 import { ensureManagerVenuesExist } from "./ensureManagerVenuesExist";
+import { ensureEventsExist } from "./ensureEventsExist";
+import { ensureRolesExist } from "./ensureRolesExist";
+import { ensureStaffExist } from "./ensureStaffExist";
+import { ensureStaffingPlansExist } from "./ensureStaffingPlansExist";
+import { ensureManningTablesExist } from "./ensureManningTablesExist";
+import { ensureManningBracketsExist } from "./ensureManningBracketsExist";
+import { ensureRequirementsCatalogExist } from "./ensureRequirementsCatalogExist";
+import { ensureVenuesExist } from "./ensureVenuesExist";
 
 const dbPath = path.join(process.cwd(), "staff-planner.db");
 
@@ -54,18 +62,9 @@ if (!globalForDb.sqlite) {
     `).run();
 
     /* =========================
-       VENUES
+       VENUES (SEED + TABLE)
     ========================= */
-    database.prepare(`
-      CREATE TABLE IF NOT EXISTS venues (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT UNIQUE NOT NULL,
-        type TEXT NOT NULL,
-        default_service_style TEXT NOT NULL,
-        notes TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `).run();
+    ensureVenuesExist(database);
 
     /* =========================
        EMPLOYEES (BASE TABLE)
@@ -76,10 +75,12 @@ if (!globalForDb.sqlite) {
         full_name TEXT NOT NULL,
         primary_role_id INTEGER NOT NULL,
         home_base_venue_id INTEGER,
-        employment_type TEXT,
+        employment_type TEXT DEFAULT 'internal',
         availability_status TEXT DEFAULT 'available',
-        english_proficiency TEXT,
+        english_proficiency TEXT DEFAULT 'basic',
         notes TEXT,
+        employee_role TEXT DEFAULT 'staff',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (primary_role_id) REFERENCES roles(id),
         FOREIGN KEY (home_base_venue_id) REFERENCES venues(id)
       )
@@ -92,6 +93,7 @@ if (!globalForDb.sqlite) {
     addColumnIfMissing(database, "employees", "other_languages", "TEXT DEFAULT '{}'");
     addColumnIfMissing(database, "employees", "special_skills", "TEXT DEFAULT '[]'");
     addColumnIfMissing(database, "employees", "experience_tags", "TEXT DEFAULT '[]'");
+    addColumnIfMissing(database, "employees", "employee_role", "TEXT DEFAULT 'staff'");
 
     /* =========================
        STAFFING RULES
@@ -100,7 +102,12 @@ if (!globalForDb.sqlite) {
       CREATE TABLE IF NOT EXISTS staffing_rules (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         venue_id INTEGER NOT NULL,
+        department TEXT DEFAULT 'service',
         role_id INTEGER NOT NULL,
+        ratio_guests INTEGER DEFAULT 0,
+        ratio_staff INTEGER DEFAULT 0,
+        threshold_guests INTEGER,
+        threshold_staff INTEGER,
         min_required INTEGER NOT NULL DEFAULT 0,
         max_allowed INTEGER,
         notes TEXT,
@@ -114,12 +121,19 @@ if (!globalForDb.sqlite) {
        SEED & OTHER TABLES
     ========================= */
     ensureUsersExist(database);
+    ensureRolesExist(database);
+    ensureStaffExist(database); // legacy compatibility if needed
     ensurePlansExist(database);
     ensureManagerVenuesExist(database);
+    ensureEventsExist(database);
+    ensureStaffingPlansExist(database);
+    ensureManningTablesExist(database);
+    ensureManningBracketsExist(database);
+    ensureRequirementsCatalogExist(database);
 
     globalForDb.sqlite = database;
 
-    console.log("✅ SQLite database initialized & migrated");
+    console.log("✅ SQLite database initialized & migrated successfully");
   } catch (error) {
     console.error("❌ Failed to initialize database:", error);
     throw error;

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import db from "@/lib/db";
 import { StaffMember, CreateStaffDTO } from "@/types";
+import { isAdmin, getUserRole, getUserId } from "@/lib/auth-utils";
 
 /* =========================
    SAFE JSON PARSER
@@ -25,7 +26,7 @@ function parseEmployee(row: any): StaffMember {
     other_languages: safeJson(row.other_languages, {}),
     special_skills: safeJson(row.special_skills, []),
     experience_tags: safeJson(row.experience_tags, []),
-    employee_role: row.employee_role || "staff" // ✅ NEW
+    employee_role: row.employee_role ?? "staff"
   };
 }
 
@@ -34,19 +35,58 @@ function parseEmployee(row: any): StaffMember {
 ========================= */
 export async function GET() {
   try {
-    const rows = db.prepare(`
-      SELECT 
-        e.*,
-        r.name AS primary_role_name,
-        v.name AS home_venue_name
-      FROM employees e
-      LEFT JOIN roles r ON e.primary_role_id = r.id
-      LEFT JOIN venues v ON e.home_base_venue_id = v.id
-      ORDER BY e.full_name ASC
-    `).all();
+    const role = getUserRole();
+    const userId = getUserId();
 
-    const employees = rows.map(parseEmployee);
-    return NextResponse.json(employees);
+    if (!role || !userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    let rows: any[] = [];
+
+    /* =========================
+       ADMIN → ALL EMPLOYEES
+    ========================= */
+    if (role === "admin") {
+      rows = db.prepare(`
+        SELECT 
+          e.*,
+          r.name AS primary_role_name,
+          v.name AS home_venue_name
+        FROM employees e
+        LEFT JOIN roles r ON e.primary_role_id = r.id
+        LEFT JOIN venues v ON e.home_base_venue_id = v.id
+        ORDER BY e.full_name ASC
+      `).all();
+    }
+
+    /* =========================
+       MANAGER → OWN VENUE STAFF
+    ========================= */
+    else if (role === "manager") {
+      rows = db.prepare(`
+        SELECT DISTINCT
+          e.*,
+          r.name AS primary_role_name,
+          v.name AS home_venue_name
+        FROM employees e
+        JOIN manager_venues mv 
+          ON mv.venue_id = e.home_base_venue_id
+        LEFT JOIN roles r ON e.primary_role_id = r.id
+        LEFT JOIN venues v ON e.home_base_venue_id = v.id
+        WHERE mv.manager_id = ?
+        ORDER BY e.full_name ASC
+      `).all(userId);
+    }
+
+    /* =========================
+       OTHER ROLES → FORBIDDEN
+    ========================= */
+    else {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    return NextResponse.json(rows.map(parseEmployee));
   } catch (error) {
     console.error("Database error (employees GET):", error);
     return NextResponse.json(
@@ -57,10 +97,14 @@ export async function GET() {
 }
 
 /* =========================
-   POST: ADD EMPLOYEE
+   POST: ADD EMPLOYEE (ADMIN ONLY)
 ========================= */
 export async function POST(request: Request) {
   try {
+    if (!isAdmin()) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const body = (await request.json()) as CreateStaffDTO & {
       employee_role?: "admin" | "manager" | "staff";
     };
@@ -108,11 +152,11 @@ export async function POST(request: Request) {
       other_languages: JSON.stringify(body.other_languages || {}),
       special_skills: JSON.stringify(body.special_skills || []),
       experience_tags: JSON.stringify(body.experience_tags || []),
-      home_base_venue_id: body.home_base_venue_id || null,
+      home_base_venue_id: body.home_base_venue_id ?? null,
       employment_type: body.employment_type || "internal",
       availability_status: body.availability_status || "available",
       notes: body.notes || "",
-      employee_role: body.employee_role || "staff" // ✅ DEFAULT
+      employee_role: body.employee_role || "staff"
     });
 
     return NextResponse.json(

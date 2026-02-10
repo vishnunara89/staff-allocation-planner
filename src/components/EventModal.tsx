@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, FormEvent } from 'react';
+import { X } from 'lucide-react';
 import { Venue, CreateEventDTO, Event } from '@/types';
 import styles from '../app/(manager)/events/events.module.css';
 import CustomDropdown from '@/components/CustomDropdown';
@@ -105,13 +106,15 @@ export default function EventModal({
 
     return (
         <div className="modal-overlay" onClick={onClose}>
-            <div className="modal-container" onClick={e => e.stopPropagation()}>
+            <div className="modal-container" onClick={e => e.stopPropagation()} style={{ maxWidth: '800px' }}>
                 <div className="modal-header">
                     <div className="modal-header-title">
                         <h3>{editingEvent?.id ? 'Edit Event Details' : 'Design New Event'}</h3>
                         <p>{selectedDate}</p>
                     </div>
-                    <button className="modal-close-btn" onClick={onClose}>×</button>
+                    <button className="modal-close-btn" onClick={onClose}>
+                        <X size={20} />
+                    </button>
                 </div>
 
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
@@ -217,8 +220,8 @@ export default function EventModal({
                     </div>
 
                     <div className="modal-footer">
-                        <button type="button" className={styles.buttonCancel} onClick={onClose}>Discard</button>
-                        <button type="submit" className={styles.buttonSubmit} disabled={submitting}>
+                        <button type="button" className="secondary" style={{ height: '48px', padding: '0 2rem' }} onClick={onClose}>Discard</button>
+                        <button type="submit" style={{ height: '48px', padding: '0 2rem' }} disabled={submitting}>
                             {submitting ? 'Processing...' : (editingEvent?.id ? 'Update Event' : 'Create Event')}
                         </button>
                     </div>

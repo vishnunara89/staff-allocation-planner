@@ -1,11 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server';
 import db from "@/lib/db";
 import * as XLSX from "xlsx";
+import { isAdmin } from '@/lib/auth-utils';
 
-/* =========================
-   Helper: Parse CSV / XLSX Row
-========================= */
-function parseCSVRow(data: any, roles: any[], venues: any[]) {
+function parseCSVRow(data: any, roles: Array<{ id: number; name: string }>, venues: Array<{ id: number; name: string }>) {
   const role = roles.find(
     r => r.name.toLowerCase() === (data.primary_role || "").toLowerCase()
   );
@@ -55,9 +53,9 @@ function parseCSVRow(data: any, roles: any[], venues: any[]) {
    POST: Bulk Import Employees
 ========================= */
 export async function POST(request: Request) {
-  try {
-    const formData = await request.formData();
-    const file = formData.get("file") as File;
+    try {
+        const formData = await request.formData();
+        const file = formData.get('file') as File;
 
     if (!file) {
       return NextResponse.json(

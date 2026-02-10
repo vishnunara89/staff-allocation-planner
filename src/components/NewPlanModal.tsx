@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { X, Check, Calendar, Users, Clock } from 'lucide-react';
 import { Event, Venue } from '@/types';
-// We'll reuse the events module css for consistency
 import styles from '../app/(manager)/events/events.module.css';
 
 interface NewPlanModalProps {
@@ -60,28 +60,36 @@ export default function NewPlanModal({ isOpen, onClose, onGenerate, venues, exis
                         <h3>New Staffing Plan</h3>
                         <p>Select an upcoming event to generate a plan for</p>
                     </div>
-                    <button className="modal-close-btn" onClick={onClose}>×</button>
+                    <button className="modal-close-btn" onClick={onClose}>
+                        <X size={20} />
+                    </button>
                 </div>
 
                 <div className="modal-body">
                     {loading ? (
-                        <div style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>Loading events...</div>
+                        <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--muted-color)' }}>
+                            <div className="animate-spin" style={{ marginBottom: '1rem' }}>⌛</div>
+                            Loading events...
+                        </div>
                     ) : events.length === 0 ? (
-                        <div style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8', border: '1px dashed #e2e8f0', borderRadius: '12px' }}>
-                            No upcoming events found. <br /> Please create an event first.
+                        <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--muted-color)', border: '1.5px dashed var(--border-color)', borderRadius: '20px', background: '#F8FAFC' }}>
+                            <Calendar size={32} style={{ marginBottom: '1rem', opacity: 0.5 }} />
+                            <p style={{ margin: 0, fontWeight: 500 }}>No upcoming events found.</p>
+                            <p style={{ margin: '0.5rem 0 0', fontSize: '0.9rem' }}>Please create an event first.</p>
                         </div>
                     ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxHeight: '400px', overflowY: 'auto', padding: '0.5rem' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxHeight: '420px', overflowY: 'auto', paddingRight: '0.5rem' }}>
                             {events.map(event => (
                                 <div
                                     key={event.id}
                                     onClick={() => setSelectedEventId(event.id)}
                                     style={{
-                                        border: selectedEventId === event.id ? '2px solid #7C4C2C' : '1px solid #e2e8f0',
-                                        borderRadius: '12px',
-                                        padding: '1rem',
+                                        border: '1.5px solid',
+                                        borderColor: selectedEventId === event.id ? 'var(--primary-color)' : 'var(--border-color)',
+                                        borderRadius: '16px',
+                                        padding: '1.25rem',
                                         cursor: 'pointer',
-                                        backgroundColor: selectedEventId === event.id ? '#fffaf8' : 'white',
+                                        backgroundColor: selectedEventId === event.id ? 'rgba(124, 76, 44, 0.05)' : 'white',
                                         transition: 'all 0.2s ease',
                                         display: 'flex',
                                         justifyContent: 'space-between',
@@ -89,21 +97,38 @@ export default function NewPlanModal({ isOpen, onClose, onGenerate, venues, exis
                                     }}
                                 >
                                     <div>
-                                        <div style={{ fontWeight: 600, color: '#2D2D2D', fontSize: '1.1rem' }}>
+                                        <div style={{ fontWeight: 700, color: 'var(--secondary-color)', fontSize: '1.1rem', letterSpacing: '-0.01em' }}>
                                             {getVenueName(event.venue_id)}
                                         </div>
-                                        <div style={{ fontSize: '0.9rem', color: '#64748b', marginTop: '0.2rem' }}>
-                                            {new Date(event.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
-                                            <span style={{ margin: '0 0.5rem' }}>•</span>
-                                            {event.start_time} - {event.end_time}
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.5rem' }}>
+                                            <div style={{ fontSize: '0.85rem', color: 'var(--muted-color)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                                <Calendar size={14} />
+                                                {new Date(event.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                                            </div>
+                                            <div style={{ fontSize: '0.85rem', color: 'var(--muted-color)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                                <Clock size={14} />
+                                                {event.start_time} - {event.end_time}
+                                            </div>
                                         </div>
-                                        <div style={{ fontSize: '0.85rem', color: '#7C4C2C', marginTop: '0.4rem', fontWeight: 500 }}>
-                                            👤 {event.guest_count} Guests
+                                        <div style={{ fontSize: '0.85rem', color: 'var(--primary-color)', marginTop: '0.6rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                            <Users size={14} />
+                                            {event.guest_count} Guests
                                         </div>
                                     </div>
 
                                     {selectedEventId === event.id && (
-                                        <div style={{ color: '#7C4C2C', fontSize: '1.5rem' }}>✓</div>
+                                        <div style={{
+                                            width: '24px',
+                                            height: '24px',
+                                            borderRadius: '50%',
+                                            background: 'var(--primary-color)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            color: 'white'
+                                        }}>
+                                            <Check size={16} strokeWidth={3} />
+                                        </div>
                                     )}
                                 </div>
                             ))}
@@ -112,12 +137,11 @@ export default function NewPlanModal({ isOpen, onClose, onGenerate, venues, exis
                 </div>
 
                 <div className="modal-footer">
-                    <button className={styles.buttonCancel} onClick={onClose}>Cancel</button>
+                    <button className="secondary" style={{ height: '48px', padding: '0 2rem' }} onClick={onClose}>Cancel</button>
                     <button
-                        className={styles.buttonSubmit}
+                        style={{ height: '48px', padding: '0 2rem' }}
                         disabled={!selectedEventId}
                         onClick={handleGenerate}
-                        style={{ opacity: !selectedEventId ? 0.5 : 1 }}
                     >
                         Generate Plan
                     </button>

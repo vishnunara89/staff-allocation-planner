@@ -3,6 +3,7 @@ import { Plan, PlanAssignment, StaffMember, Role } from '@/types';
 import styles from '../app/(manager)/plans/plans.module.css';
 import EmployeeCard from './EmployeeCard';
 import { generateStaffingPlanPDF } from '@/utils/PDFGenerator';
+import { exportPlanToCSV } from '@/lib/staff-utils';
 
 interface GeneratedPlanViewProps {
     plan: Plan;
@@ -101,6 +102,15 @@ export default function GeneratedPlanView({ plan, onBack, onExport }: GeneratedP
         ));
     };
 
+    const handleExportCSV = () => {
+        try {
+            exportPlanToCSV(plan, assignments);
+        } catch (error) {
+            console.error('CSV Export failed:', error);
+            alert('Failed to export CSV. Please try again.');
+        }
+    };
+
     const handleExportPDF = () => {
         try {
             generateStaffingPlanPDF({
@@ -148,9 +158,14 @@ export default function GeneratedPlanView({ plan, onBack, onExport }: GeneratedP
                     </span>
                     <span className={styles.guestBadge}>👤 {plan.guest_count} Guests</span>
                 </div>
-                <button onClick={handleExportPDF} className={styles.exportBtn}>
-                    ⬇ Export Plan
-                </button>
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                    <button onClick={handleExportCSV} className={styles.buttonSecondary} style={{ padding: '0.5rem 1rem' }}>
+                        ⬇ Download CSV
+                    </button>
+                    <button onClick={handleExportPDF} className={styles.exportBtn}>
+                        ⬇ Download PDF
+                    </button>
+                </div>
             </div>
 
             {/* EXISTING DESIGN - Stats Row */}

@@ -33,24 +33,31 @@ export default function AdminDashboard() {
                 const today = new Date().toISOString().split('T')[0];
 
                 // Fetch data in parallel
-                const [venuesRes, staffRes, eventsRes] = await Promise.all([
+                const [venuesRes, staffRes, eventsRes, managersRes] = await Promise.all([
                     fetch('/api/venues'),
                     fetch('/api/staff'),
-                    fetch(`/api/events?from_date=${today}`)
+                    fetch(`/api/events?from_date=${today}`),
+                    fetch('/api/managers')
                 ]);
 
-                const [venues, staff, events] = await Promise.all([
-                    venuesRes.json(),
-                    staffRes.json(),
-                    eventsRes.json()
+                const [venuesData, staffData, eventsData, managersData] = await Promise.all([
+                    venuesRes.json().catch(() => ({ value: [] })),
+                    staffRes.json().catch(() => ({ value: [] })),
+                    eventsRes.json().catch(() => ({ value: [] })),
+                    managersRes.json().catch(() => ({ value: [] }))
                 ]);
+
+                const venues = Array.isArray(venuesData) ? venuesData : [];
+                const staff = Array.isArray(staffData) ? staffData : [];
+                const events = Array.isArray(eventsData) ? eventsData : [];
+                const managers = Array.isArray(managersData) ? managersData : [];
 
                 setCounts({
-                    venues: venues.length || 0,
-                    staff: staff.length || 0,
-                    events: events.length || 0,
+                    venues: venues.length,
+                    staff: staff.length,
+                    events: events.length,
                     gaps: 0, // Placeholder for gaps
-                    managers: 0 // Placeholder until managers table exists
+                    managers: managers.length
                 });
             } catch (error) {
                 console.error("Failed to fetch dashboard data:", error);

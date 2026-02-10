@@ -3,9 +3,9 @@ import db from "@/lib/db";
 import { StaffMember, CreateStaffDTO } from "@/types";
 
 /* =========================
-   Helper: Parse JSON fields
+   Helper: Parse JSON Fields
 ========================= */
-function parseStaff(row: any): StaffMember {
+function parseEmployee(row: any): StaffMember {
   return {
     ...row,
     secondary_roles: row.secondary_roles ? JSON.parse(row.secondary_roles) : [],
@@ -16,51 +16,47 @@ function parseStaff(row: any): StaffMember {
 }
 
 /* =========================
-   GET: Fetch Staff
+   GET: All Employees
 ========================= */
 export async function GET() {
   try {
-    const rows = db.prepare(`
-      SELECT 
-        s.*,
-        r.name AS primary_role_name,
-        v.name AS home_venue_name
-      FROM staff s
-      LEFT JOIN roles r ON s.primary_role_id = r.id
-      LEFT JOIN venues v ON s.home_base_venue_id = v.id
-      ORDER BY s.full_name ASC
-    `).all();
+    const stmt = db.prepare(`
+      SELECT e.*, r.name AS primary_role_name, v.name AS home_venue_name
+      FROM employees e
+      LEFT JOIN roles r ON e.primary_role_id = r.id
+      LEFT JOIN venues v ON e.home_base_venue_id = v.id
+      ORDER BY e.full_name ASC
+    `);
 
-    const staff = rows.map(parseStaff);
+    const rows = stmt.all();
+    const employees = rows.map(parseEmployee);
 
-    // ✅ Return pure array
-    return NextResponse.json(staff);
+    return NextResponse.json(employees);
   } catch (error) {
-    console.error("Database error (staff GET):", error);
+    console.error("Database error (employees GET):", error);
     return NextResponse.json(
-      { error: "Failed to fetch staff" },
+      { error: "Failed to fetch employees" },
       { status: 500 }
     );
   }
 }
 
 /* =========================
-   POST: Create Staff
+   POST: Create Employee
 ========================= */
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as CreateStaffDTO;
 
-    // ✅ Required validation
-    if (!body.full_name?.trim() || !body.primary_role_id) {
+    if (!body.full_name || !body.primary_role_id) {
       return NextResponse.json(
-        { error: "Full Name and Primary Role are required" },
+        { error: "Name and primary role are required" },
         { status: 400 }
       );
     }
 
     const stmt = db.prepare(`
-      INSERT INTO staff (
+      INSERT INTO employees (
         full_name,
         primary_role_id,
         secondary_roles,
@@ -91,34 +87,24 @@ export async function POST(request: Request) {
       full_name: body.full_name,
       primary_role_id: body.primary_role_id,
       secondary_roles: JSON.stringify(body.secondary_roles || []),
-      english_proficiency: body.english_proficiency || "medium",
+      english_proficiency: body.english_proficiency || "basic",
       other_languages: JSON.stringify(body.other_languages || {}),
       special_skills: JSON.stringify(body.special_skills || []),
       experience_tags: JSON.stringify(body.experience_tags || []),
-      home_base_venue_id: body.home_base_venue_id ?? null,
+      home_base_venue_id: body.home_base_venue_id || null,
       employment_type: body.employment_type || "internal",
       availability_status: body.availability_status || "available",
       notes: body.notes || ""
     });
 
-    // ✅ Return created staff in same shape as GET
-    const newStaff = db.prepare(`
-      SELECT 
-        s.*,
-        r.name AS primary_role_name,
-        v.name AS home_venue_name
-      FROM staff s
-      LEFT JOIN roles r ON s.primary_role_id = r.id
-      LEFT JOIN venues v ON s.home_base_venue_id = v.id
-      WHERE s.id = ?
-    `).get(result.lastInsertRowid);
-
-    return NextResponse.json(parseStaff(newStaff), { status: 201 });
-
-  } catch (error) {
-    console.error("Database error (staff POST):", error);
     return NextResponse.json(
-      { error: "Failed to create staff member" },
+      { id: result.lastInsertRowid },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error("Database error (employees POST):", error);
+    return NextResponse.json(
+      { error: "Failed to create employee" },
       { status: 500 }
     );
   }

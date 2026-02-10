@@ -49,8 +49,11 @@ export default function AdminVenuesPage() {
                 fetch('/api/rules')
             ]);
 
-            const venuesData = await venuesRes.json();
-            const rulesData = await rulesRes.json();
+            const venuesJson = await venuesRes.json().catch(() => []);
+            const rulesJson = await rulesRes.json().catch(() => []);
+
+            const venuesData = Array.isArray(venuesJson) ? venuesJson : [];
+            const rulesData = Array.isArray(rulesJson) ? rulesJson : [];
 
             // Calculate rule counts per venue
             const counts: Record<number, number> = {};
@@ -62,6 +65,7 @@ export default function AdminVenuesPage() {
             setRuleCounts(counts);
         } catch (error) {
             console.error("Failed to fetch venues data:", error);
+            setVenues([]);
         } finally {
             setLoading(false);
         }
@@ -82,8 +86,8 @@ export default function AdminVenuesPage() {
     };
 
     const filteredVenues = venues.filter(v =>
-        v.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        v.type.toLowerCase().includes(searchQuery.toLowerCase())
+        v.name?.toLowerCase()?.includes(searchQuery.toLowerCase()) ||
+        v.type?.toLowerCase()?.includes(searchQuery.toLowerCase())
     );
 
     return (

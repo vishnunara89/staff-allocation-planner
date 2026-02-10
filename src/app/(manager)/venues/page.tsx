@@ -11,15 +11,7 @@ export default function VenuesPage() {
     const [error, setError] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
 
-    const [showModal, setShowModal] = useState(false);
-    const [formData, setFormData] = useState({
-        name: '',
-        type: 'camp',
-        default_service_style: 'sharing',
-        notes: ''
-    });
-    const [submitting, setSubmitting] = useState(false);
-    const [formError, setFormError] = useState('');
+    // ShowModal and form state removed for read-only mode
 
     useEffect(() => {
         fetchVenues();
@@ -37,45 +29,7 @@ export default function VenuesPage() {
         }
     }
 
-    async function handleSubmit(e: FormEvent) {
-        e.preventDefault();
-
-        if (!formData.name.trim()) {
-            setFormError('Venue name is required');
-            return;
-        }
-
-        setSubmitting(true);
-        setFormError('');
-
-        try {
-            const res = await fetch('/api/venues', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
-            });
-
-            const data = await res.json();
-
-            if (!res.ok) throw new Error(data.error);
-
-            // ✅ ADD NEW VENUE TO LIST
-            setVenues(prev => [...prev, data]);
-
-            setShowModal(false);
-            setFormData({
-                name: '',
-                type: 'camp',
-                default_service_style: 'sharing',
-                notes: ''
-            });
-
-        } catch (err: any) {
-            setFormError(err.message);
-        } finally {
-            setSubmitting(false);
-        }
-    }
+    // Read-only: handleSubmit removed
 
     const filteredVenues = venues.filter(v =>
         v.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -86,9 +40,6 @@ export default function VenuesPage() {
         <div className={styles.container}>
             <div className={styles.header}>
                 <h2>Venues</h2>
-                <button onClick={() => setShowModal(true)} className={styles.primaryButton}>
-                    + Add Venue
-                </button>
             </div>
 
             <input
@@ -110,26 +61,7 @@ export default function VenuesPage() {
                 </div>
             )}
 
-            {showModal && (
-                <div className={styles.modalOverlay}>
-                    <div className={styles.modal}>
-                        <h3>Add Venue</h3>
-
-                        {formError && <p className={styles.modalError}>{formError}</p>}
-
-                        <form onSubmit={handleSubmit}>
-                            <input
-                                placeholder="Venue name"
-                                value={formData.name}
-                                onChange={e => setFormData({ ...formData, name: e.target.value })}
-                            />
-                            <button disabled={submitting}>
-                                {submitting ? 'Creating…' : 'Create Venue'}
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            )}
+// Modal removed for read-only mode
         </div>
     );
 }

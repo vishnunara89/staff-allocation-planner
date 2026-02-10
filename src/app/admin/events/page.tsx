@@ -37,9 +37,6 @@ export default function AdminEventsPage() {
 
             if (viewMode === 'Upcoming') {
                 url += `?from_date=${today}`;
-            } else if (viewMode === 'Past') {
-                // For simplicity, we'll just fetch all and filter in JS if needed, 
-                // but let's assume we want real data.
             }
 
             const [evRes, venRes] = await Promise.all([
@@ -47,19 +44,22 @@ export default function AdminEventsPage() {
                 fetch('/api/venues')
             ]);
 
-            const evData = await evRes.json() as Event[];
-            const venData = await venRes.json() as Venue[];
+            const evJson = await evRes.json().catch(() => []);
+            const venJson = await venRes.json().catch(() => []);
+
+            const evData = Array.isArray(evJson) ? evJson : [];
+            const venData = Array.isArray(venJson) ? venJson : [];
 
             if (viewMode === 'Past') {
-                setEvents(evData.filter(e => e.date < today).reverse());
-            } else if (viewMode === 'All') {
-                setEvents(evData);
+                setEvents(evData.filter((e: any) => e.date < today).reverse());
             } else {
                 setEvents(evData);
             }
             setVenues(venData);
         } catch (error) {
             console.error("Failed to fetch events:", error);
+            setEvents([]);
+            setVenues([]);
         } finally {
             setLoading(false);
         }
@@ -82,8 +82,8 @@ export default function AdminEventsPage() {
     };
 
     const filteredEvents = events.filter(e =>
-        e.venue_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        e.date.includes(searchQuery)
+        e.venue_name?.toLowerCase()?.includes(searchQuery.toLowerCase()) ||
+        e.date?.includes(searchQuery)
     );
 
     return (

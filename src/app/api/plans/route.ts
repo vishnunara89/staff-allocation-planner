@@ -1,14 +1,34 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { getUserRole, getUserId } from '@/lib/auth-utils';
 
 export async function GET() {
     try {
-        // Get distinct plans by date and venue
-        const plans = db.prepare(`
-            SELECT DISTINCT event_date, venue_id, status, count(*) as staff_count 
-            FROM staffing_plans 
-            GROUP BY event_date, venue_id
-        `).all();
+        const role = getUserRole();
+        const userId = getUserId();
+
+        if (!role || !userId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        let query = `
+            SELECT DISTINCT event_date, venue_id, sp.status, count(*) as staff_count 
+            FROM staffing_plans sp
+            JOIN venues v ON sp.venue_id = v.id
+        `;
+        let params: any[] = [];
+
+        if (role === "manager") {
+            const assigned = db.prepare("SELECT venue_id FROM manager_venues WHERE manager_id = ?").all(userId) as { venue_id: number }[];
+            const ids = assigned.map(v => v.venue_id).filter(id => id !== null);
+
+            if (ids.length === 0) return NextResponse.json([]);
+
+            query += ` WHERE sp.venue_id IN (${ids.join(',')})`;
+        }
+
+        query += " GROUP BY event_date, venue_id";
+        const plans = db.prepare(query).all(...params);
 
         return NextResponse.json(plans);
     } catch (error) {

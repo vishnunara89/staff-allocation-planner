@@ -9,6 +9,7 @@ import {
   X,
   Phone,
   User,
+  Search,
 } from "lucide-react";
 import styles from "./managers.module.css";
 
@@ -21,9 +22,10 @@ type Manager = {
   phone: string;
   username: string;
   venues: string[];
+  venueIds: number[];
 };
 
-const venuesList = ["SONARA", "NEST", "LADY NARA", "RAMADAN CAMP"];
+import { Venue } from "@/types";
 
 export default function ManagersPage() {
   const [managers, setManagers] = useState<Manager[]>([]);
@@ -40,22 +42,30 @@ export default function ManagersPage() {
 
   // Assign venues
   const [assignMgr, setAssignMgr] = useState<Manager | null>(null);
-  const [selectedVenues, setSelectedVenues] = useState<string[]>([]);
+  const [selectedVenueIds, setSelectedVenueIds] = useState<number[]>([]);
+  const [venues, setVenues] = useState<Venue[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
 
   /* =====================
-     LOAD MANAGERS
+     LOAD DATA
   ===================== */
-  const loadManagers = async () => {
+  const loadData = async () => {
     try {
       setLoading(true);
       setError("");
 
-      const res = await fetch("/api/managers", { cache: "no-store" });
-      const data = await res.json();
+      const [mgrRes, venRes] = await Promise.all([
+        fetch("/api/managers", { cache: "no-store" }),
+        fetch("/api/venues")
+      ]);
 
-      if (!res.ok) throw new Error(data?.error || "Failed to load managers");
+      const mgrData = await mgrRes.json();
+      const venData = await venRes.json();
 
-      setManagers(Array.isArray(data) ? data : []);
+      if (!mgrRes.ok) throw new Error(mgrData?.error || "Failed to load managers");
+
+      setManagers(Array.isArray(mgrData) ? mgrData : []);
+      setVenues(Array.isArray(venData) ? venData : []);
     } catch (err: any) {
       setError(err.message || "Server error");
       setManagers([]);
@@ -65,7 +75,7 @@ export default function ManagersPage() {
   };
 
   useEffect(() => {
-    loadManagers();
+    loadData();
   }, []);
 
   /* =====================
@@ -96,7 +106,7 @@ export default function ManagersPage() {
       setUsername("");
       setPassword("");
 
-      await loadManagers();
+      await loadData();
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -110,18 +120,22 @@ export default function ManagersPage() {
   const saveAssignment = async () => {
     if (!assignMgr) return;
 
-    await fetch("/api/managers", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        managerId: assignMgr.id,
-        venues: selectedVenues,
-      }),
-    });
+    try {
+      await fetch("/api/managers", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          managerId: assignMgr.id,
+          venueIds: selectedVenueIds,
+        }),
+      });
 
-    setAssignMgr(null);
-    setSelectedVenues([]);
-    loadManagers();
+      setAssignMgr(null);
+      setSelectedVenueIds([]);
+      loadData();
+    } catch (err) {
+      console.error("Save failed:", err);
+    }
   };
 
   /* =====================
@@ -142,13 +156,30 @@ export default function ManagersPage() {
 
       {error && <p className={styles.error}>{error}</p>}
 
+      <div style={{ background: 'white', padding: '1rem', borderRadius: '16px', border: '1px solid rgba(0, 0, 0, 0.05)', display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
+        <div style={{ position: 'relative', flex: 1, maxWidth: '400px' }}>
+          <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+          <input
+            type="text"
+            placeholder="Search managers..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            style={{ width: '100%', height: '48px', padding: '0 1rem 0 3rem', border: '1.5px solid #e2e8f0', borderRadius: '12px', background: '#f8fafc', outline: 'none' }}
+          />
+        </div>
+      </div>
+
       {loading ? (
         <p className={styles.muted}>Loading managers…</p>
       ) : managers.length === 0 ? (
         <p className={styles.muted}>No managers found</p>
       ) : (
         <div className={styles.grid}>
-          {managers.map((m) => (
+          {managers.filter(m =>
+            !searchQuery ||
+            m.name?.toLowerCase()?.includes(searchQuery.toLowerCase()) ||
+            m.username?.toLowerCase()?.includes(searchQuery.toLowerCase())
+          ).map((m) => (
             <div key={m.id} className={styles.managerCard}>
               <div className={styles.iconCircle}>
                 <Shield size={20} />
@@ -167,7 +198,7 @@ export default function ManagersPage() {
               <div className={styles.role}>Role: Manager</div>
 
               <div className={styles.venueList}>
-                {m.venues.length === 0 ? (
+                {(m.venues || []).length === 0 ? (
                   <span className={styles.muted}>No venues assigned</span>
                 ) : (
                   m.venues.map((v) => (
@@ -179,14 +210,14 @@ export default function ManagersPage() {
               </div>
 
               <div className={styles.count}>
-                Total Venues: <b>{m.venues.length}</b>
+                Total Venues: <b>{(m.venues || []).length}</b>
               </div>
 
               <button
                 className={styles.assignBtn}
                 onClick={() => {
                   setAssignMgr(m);
-                  setSelectedVenues(m.venues);
+                  setSelectedVenueIds(m.venueIds || []);
                 }}
               >
                 <ClipboardList size={14} /> Assign Venues
@@ -226,25 +257,26 @@ export default function ManagersPage() {
       {assignMgr && (
         <div className={styles.modalOverlay}>
           <div className={styles.modal}>
-            <h3>Assign Venues</h3>
+            <h3>Assign Venues to {assignMgr.name}</h3>
 
             <div className={styles.checkboxGrid}>
-              {venuesList.map((v) => (
-                <label key={v} className={styles.checkbox}>
+              {venues.map((v) => (
+                <label key={v.id} className={styles.checkbox}>
                   <input
                     type="checkbox"
-                    checked={selectedVenues.includes(v)}
+                    checked={selectedVenueIds.includes(v.id)}
                     onChange={(e) =>
-                      setSelectedVenues((prev) =>
+                      setSelectedVenueIds((prev) =>
                         e.target.checked
-                          ? [...prev, v]
-                          : prev.filter((x) => x !== v)
+                          ? [...prev, v.id]
+                          : prev.filter((id) => id !== v.id)
                       )
                     }
                   />
-                  {v}
+                  {v.name}
                 </label>
               ))}
+              {venues.length === 0 && <p className={styles.muted}>No venues available to assign.</p>}
             </div>
 
             <div className={styles.modalActions}>

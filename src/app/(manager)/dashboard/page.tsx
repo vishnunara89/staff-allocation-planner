@@ -244,8 +244,6 @@ export default function DashboardPage() {
         <h3>Management Actions</h3>
 
         <div className="action-grid">
-          <ActionCard href="/staff" title="Add Staff" description="Create new staff profile" />
-          <ActionCard href="/venues" title="Add Venue" description="Register new venue" />
           <ActionCard href="/events" title="Create Event" description="Schedule new event" />
           <ActionCard href="/plans" title="Create Plan" description="Generate allocation" />
         </div>

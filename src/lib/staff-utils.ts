@@ -109,3 +109,43 @@ export function downloadCSVTemplate() {
     link.click();
     document.body.removeChild(link);
 }
+
+/**
+ * Exports a generated staffing plan to CSV
+ */
+import { Plan, PlanAssignment } from '@/types';
+
+export function exportPlanToCSV(plan: Plan, assignments: PlanAssignment[]) {
+    const headers = ['Role', 'Staff Name', 'Type', 'Status'];
+
+    // Sort assignments by role name
+    const sorted = [...assignments].sort((a, b) => a.role_name.localeCompare(b.role_name));
+
+    const rows = sorted.map(a => [
+        a.role_name,
+        a.staff_name,
+        a.is_freelance ? 'Freelancer' : 'Internal',
+        a.status
+    ].map(val => `"${(val || '').toString().replace(/"/g, '""')}"`).join(','));
+
+    // Plan info header
+    const planInfo = [
+        [`"Venue: ${plan.venue_name}"`],
+        [`"Date: ${plan.event_date}"`],
+        [`"Guest Count: ${plan.guest_count}"`],
+        [''], // empty row
+        [headers.join(',')]
+    ].map(r => r.join(',')).join('\n');
+
+    const csvContent = planInfo + '\n' + rows.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute('href', url);
+    link.setAttribute('download', `nara_plan_${plan.venue_name.replace(/\s+/g, '_').toLowerCase()}_${plan.event_date}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}

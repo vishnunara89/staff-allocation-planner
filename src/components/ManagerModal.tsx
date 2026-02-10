@@ -61,33 +61,33 @@ export default function ManagerModal({
 
     return (
         <div className="modal-overlay" onClick={onClose}>
-            <div className="modal-container" onClick={e => e.stopPropagation()}>
+            <div className="modal-container" onClick={e => e.stopPropagation()} style={{ maxWidth: '800px' }}>
                 <div className="modal-header">
                     <div className="modal-header-title">
                         <h3>{editingManager ? "Edit Manager" : "Add New Manager"}</h3>
                         <p>{editingManager ? "Modify access and assignments" : "Create a new system operator"}</p>
                     </div>
-                    <button className="modal-close-btn" onClick={onClose}>×</button>
+                    <button className="modal-close-btn" onClick={onClose}>
+                        <X size={20} />
+                    </button>
                 </div>
 
                 <div className="modal-body">
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.75rem 2rem' }}>
-                        <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                            <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>Full Name</label>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem 2rem' }}>
+                        <div className="form-group-standard">
+                            <label className="form-label-standard">Full Name</label>
                             <input
                                 className="modal-input"
-                                style={{ height: '48px', borderRadius: '12px', background: '#F8FAFC', padding: '0 1.25rem', border: '1.5px solid #e2e8f0' }}
                                 type="text"
                                 value={formData.name}
                                 onChange={e => setFormData({ ...formData, name: e.target.value })}
                                 placeholder="Enter full name"
                             />
                         </div>
-                        <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                            <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>Email Address</label>
+                        <div className="form-group-standard">
+                            <label className="form-label-standard">Email Address</label>
                             <input
                                 className="modal-input"
-                                style={{ height: '48px', borderRadius: '12px', background: '#F8FAFC', padding: '0 1.25rem', border: '1.5px solid #e2e8f0' }}
                                 type="email"
                                 value={formData.email}
                                 onChange={e => setFormData({ ...formData, email: e.target.value })}
@@ -95,11 +95,10 @@ export default function ManagerModal({
                             />
                         </div>
                         {!editingManager && (
-                            <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>Initial Password</label>
+                            <div className="form-group-standard">
+                                <label className="form-label-standard">Initial Password</label>
                                 <input
                                     className="modal-input"
-                                    style={{ height: '48px', borderRadius: '12px', background: '#F8FAFC', padding: '0 1.25rem', border: '1.5px solid #e2e8f0' }}
                                     type="password"
                                     value={formData.password}
                                     onChange={e => setFormData({ ...formData, password: e.target.value })}
@@ -107,8 +106,8 @@ export default function ManagerModal({
                                 />
                             </div>
                         )}
-                        <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                            <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>Account Status</label>
+                        <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            <label className="form-label-standard">Account Status</label>
                             <CustomDropdown
                                 options={[
                                     { id: 'Active', name: 'Active' },
@@ -121,9 +120,9 @@ export default function ManagerModal({
                         </div>
                     </div>
 
-                    <div style={{ marginTop: '2.5rem', borderTop: '1.5px dashed #e2e8f0', paddingTop: '2rem' }}>
-                        <h4 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '1.5rem', color: '#1a1a1a' }}>Venue Access Assignment</h4>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
+                    <div style={{ marginTop: '2.5rem', borderTop: '1.5px dashed #E2E8F0', paddingTop: '2rem' }}>
+                        <h4 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '1.5rem', color: 'var(--secondary-color)' }}>Venue Access Assignment</h4>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1rem' }}>
                             {allVenues.map(venue => (
                                 <div
                                     key={venue.id}
@@ -135,7 +134,7 @@ export default function ManagerModal({
                                         padding: '1rem',
                                         borderRadius: '12px',
                                         border: '1.5px solid',
-                                        borderColor: formData.venues.includes(venue.name) ? 'var(--primary-color)' : '#f1f5f9',
+                                        borderColor: formData.venues.includes(venue.name) ? 'var(--primary-color)' : 'var(--border-color)',
                                         background: formData.venues.includes(venue.name) ? 'rgba(124, 76, 44, 0.05)' : 'white',
                                         cursor: 'pointer',
                                         transition: 'all 0.2s'
@@ -154,7 +153,7 @@ export default function ManagerModal({
                                     }}>
                                         {formData.venues.includes(venue.name) && <Check size={14} color="white" />}
                                     </div>
-                                    <span style={{ fontSize: '0.9rem', fontWeight: 600, color: formData.venues.includes(venue.name) ? '#1a1a1a' : '#64748b' }}>
+                                    <span style={{ fontSize: '0.9rem', fontWeight: 600, color: formData.venues.includes(venue.name) ? 'var(--secondary-color)' : 'var(--muted-color)' }}>
                                         {venue.name}
                                     </span>
                                 </div>
@@ -163,23 +162,22 @@ export default function ManagerModal({
                     </div>
                 </div>
 
-                <div className="modal-footer" style={{ padding: '1.5rem 2.5rem', background: '#f8fafc', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+                <div className="modal-footer">
                     <button
-                        className="button-secondary"
+                        className="secondary"
                         onClick={onClose}
-                        style={{ background: 'white', color: 'var(--secondary-color)', border: '1px solid var(--border-color)', padding: '0.75rem 1.5rem', borderRadius: '12px', fontWeight: 600, cursor: 'pointer' }}
+                        style={{ height: '48px', padding: '0 2rem' }}
                     >
                         Cancel
                     </button>
                     <button
-                        className="button-primary"
                         onClick={() => onSave(formData)}
-                        style={{ background: 'var(--primary-color)', color: 'white', border: 'none', padding: '0.75rem 2rem', borderRadius: '12px', fontWeight: 600, cursor: 'pointer', boxShadow: '0 4px 10px rgba(124, 76, 44, 0.2)' }}
+                        style={{ height: '48px', padding: '0 2rem' }}
                     >
                         {editingManager ? "Update Manager" : "Create Account"}
                     </button>
                 </div>
             </div>
-        </div >
+        </div>
     );
 }

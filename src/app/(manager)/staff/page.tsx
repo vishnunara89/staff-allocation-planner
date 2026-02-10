@@ -29,6 +29,7 @@ import {
 import CustomDropdown from "@/components/CustomDropdown";
 import StatusDropdown from "@/components/StatusDropdown";
 import BulkImportModal from "@/components/BulkImportModal";
+import EmployeeModal from "@/components/EmployeeModal";
 
 /* =========================
    SAFE ARRAY HELPER
@@ -151,24 +152,10 @@ export default function StaffPage() {
      MODALS
   ========================= */
   function openAddModal() {
-    setModalMode("add");
-    setEditingStaff({
-        full_name: "",
-        primary_role_id: roles[0]?.id || 1,
-        secondary_roles: [],
-        english_proficiency: "good",
-        other_languages: {},
-        special_skills: [],
-        experience_tags: [],
-        employment_type: "internal",
-        availability_status: "available",
-        notes: "",
-    } as unknown as StaffMember);
-    setIsModalOpen(true);
+    // Disabled in read-only mode
   }
 
   function openEditModal(member: StaffMember) {
-    setModalMode("edit");
     setEditingStaff({ ...member });
     setIsModalOpen(true);
   }
@@ -192,7 +179,7 @@ export default function StaffPage() {
   }
 
   /* =========================
-     UI (UNCHANGED)
+     UI
   ========================= */
   return (
     <div className={styles.container}>
@@ -200,40 +187,103 @@ export default function StaffPage() {
       <div className={styles.header}>
         <div>
           <h2>Staff Roster</h2>
-          <p>Manage fleet and availability</p>
+          <p>View workforce data and availability</p>
         </div>
         <div className={styles.actions}>
-          <button onClick={downloadCSVTemplate} className={styles.buttonSecondary}>
-            <FileDown size={16} /> Template
-          </button>
           <button
             onClick={() => exportToCSV(filteredStaff, roles, venues)}
             className={styles.buttonSecondary}
           >
-            <Mail size={16} /> Export
-          </button>
-          <button
-            onClick={() => setIsImportModalOpen(true)}
-            className={styles.buttonSecondary}
-          >
-            <FileUp size={16} /> Import
-          </button>
-          <button onClick={openAddModal} className={styles.buttonPrimary}>
-            <UserPlus size={16} /> Add Staff
+            <Mail size={16} /> Export CSV
           </button>
         </div>
       </div>
 
-      {/* EMPTY */}
-      {filteredStaff.length === 0 && (
-        <div className={styles.emptyState}>No staff found</div>
-      )}
+      {/* SEARCH/FILTER */}
+      <div className={styles.toolbar}>
+        <div className={styles.searchInputWrapper}>
+          <Search size={18} className={styles.searchIcon} />
+          <input
+            type="text"
+            placeholder="Search staff..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className={styles.searchInput}
+          />
+        </div>
+        <div className={styles.filterGroup}>
+          <CustomDropdown
+            options={roles}
+            value={filterRole}
+            onChange={setFilterRole}
+            placeholder="All Roles"
+          />
+          <CustomDropdown
+            options={venues}
+            value={filterVenue}
+            onChange={setFilterVenue}
+            placeholder="All Venues"
+          />
+          <StatusDropdown
+            value={filterStatus}
+            onChange={setFilterStatus}
+          />
+        </div>
+      </div>
 
-      {/* IMPORT */}
-      <BulkImportModal
-        isOpen={isImportModalOpen}
-        onClose={() => setIsImportModalOpen(false)}
+      {/* TABLE */}
+      <div className={styles.tableContainer}>
+        {filteredStaff.length === 0 ? (
+          <div className={styles.emptyState}>No staff found</div>
+        ) : (
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Role</th>
+                <th>Home Base</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredStaff.map((s) => (
+                <tr key={s.id}>
+                  <td><b>{s.full_name}</b></td>
+                  <td>{getRoleName(s.primary_role_id)}</td>
+                  <td>{getVenueName(s.home_base_venue_id)}</td>
+                  <td>
+                    <span className={styles.tag} style={{
+                      background: s.availability_status === 'available' ? '#dcfce7' : s.availability_status === 'leave' ? '#fff7ed' : '#f1f5f9',
+                      color: s.availability_status === 'available' ? '#166534' : s.availability_status === 'leave' ? '#9a3412' : '#475569',
+                      textTransform: 'capitalize',
+                      borderRadius: '20px',
+                      padding: '4px 10px'
+                    }}>
+                      {s.availability_status}
+                    </span>
+                  </td>
+                  <td>
+                    <button onClick={() => openEditModal(s)} className={styles.buttonAction}>
+                      View Profile
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {/* VIEW MODAL (EmployeeModal in read-only mode if it supports it, or just use it as is but no save) */}
+      <EmployeeModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
         onSuccess={fetchData}
+        venues={venues}
+        roles={roles}
+        initialData={editingStaff}
+        readOnly={true}
       />
     </div>
   );

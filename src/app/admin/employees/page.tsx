@@ -40,13 +40,15 @@ export default function AdminEmployeesPage() {
         setLoading(true);
         try {
             const [staffData, venuesData, rolesData] = await Promise.all([
-                fetch('/api/staff').then(r => r.json()),
-                fetch('/api/venues').then(r => r.json()),
-                fetch('/api/roles').then(r => r.json())
+                fetch('/api/staff').then(r => r.ok ? r.json() : []).catch(() => []),
+                fetch('/api/venues').then(r => r.ok ? r.json() : []).catch(() => []),
+                fetch('/api/roles').then(r => r.ok ? r.json() : []).catch(() => [])
             ]);
-            setStaff(staffData);
-            setVenues(venuesData);
-            setRoles(rolesData);
+
+            // Safety check: ensure arrays
+            setStaff(Array.isArray(staffData) ? staffData : []);
+            setVenues(Array.isArray(venuesData) ? venuesData : []);
+            setRoles(Array.isArray(rolesData) ? rolesData : []);
         } catch (err) {
             console.error('Failed to fetch admin employee data:', err);
         } finally {
@@ -61,7 +63,7 @@ export default function AdminEmployeesPage() {
     const getRoleName = (id: number) => roles.find(r => r.id === id)?.name || '-';
 
     const filteredEmployees = staff.filter(s => {
-        const matchesSearch = s.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        const matchesSearch = s.full_name?.toLowerCase()?.includes(searchQuery.toLowerCase()) ||
             (extractPhone(s.notes) || '').includes(searchQuery);
         const matchesRole = !filterRole || s.primary_role_id === Number(filterRole);
         const matchesVenue = !filterVenue || s.home_base_venue_id === Number(filterVenue);

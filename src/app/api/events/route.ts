@@ -1,20 +1,37 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { CreateEventDTO } from '@/types';
+import { getUserRole, getUserId } from '@/lib/auth-utils';
 
 export async function GET(request: Request) {
     try {
+        const role = getUserRole();
+        const userId = getUserId();
+
+        if (!role || !userId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
         const { searchParams } = new URL(request.url);
         const date = searchParams.get('date');
         const venueId = searchParams.get('venue_id');
 
         let query = `
-        SELECT e.*, v.name as venue_name 
-        FROM events e
-        LEFT JOIN venues v ON e.venue_id = v.id
-        WHERE 1=1
-    `;
+            SELECT e.*, v.name as venue_name 
+            FROM events e
+            LEFT JOIN venues v ON e.venue_id = v.id
+            WHERE 1=1
+        `;
         const params: any[] = [];
+
+        if (role === "manager") {
+            const assigned = db.prepare("SELECT venue_id FROM manager_venues WHERE manager_id = ?").all(userId) as { venue_id: number }[];
+            const ids = assigned.map(v => v.venue_id).filter(id => id !== null);
+
+            if (ids.length === 0) return NextResponse.json([]);
+
+            query += ` AND e.venue_id IN (${ids.join(',')})`;
+        }
 
         if (date) {
             query += ' AND e.date = ?';

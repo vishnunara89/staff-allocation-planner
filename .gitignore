@@ -34,3 +34,9 @@ next-env.d.ts
 
 # database
 *.db
+*.db-shm
+*.db-wal
+
+# temp / artifacts
+README.zip
+events_response.json

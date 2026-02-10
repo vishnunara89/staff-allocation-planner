@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { isAdmin } from '@/lib/auth-utils';
 
 function parseStaff(row: any) {
     return {
@@ -24,6 +25,9 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
     try {
+        if (!isAdmin()) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+        }
         const body = await request.json();
 
         const stmt = db.prepare(`
@@ -68,6 +72,9 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
     try {
+        if (!isAdmin()) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+        }
         // Optional: Check for future assignments? For now force delete OK.
         const stmt = db.prepare('DELETE FROM staff WHERE id = ?');
         const res = stmt.run(params.id);

@@ -196,13 +196,17 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                                             setManningConfig(template.configs[firstDept]);
                                         }}
                                         className={styles.addBracketBtn}
-                                        style={{ borderStyle: 'solid', display: 'flex', alignItems: 'center', gap: '0.4rem', height: '42px' }}
+                                        style={{ height: '48px', padding: '0 1.5rem', fontWeight: 700 }}
                                     >
-                                        <RotateCcw size={14} /> Load Template
+                                        <RotateCcw size={16} style={{ marginRight: '0.5rem' }} /> Load Template
                                     </button>
                                 </div>
                                 <div className={styles.manningActions}>
-                                    {manningFeedback && <span className={styles.feedback}>{manningFeedback}</span>}
+                                    {manningFeedback && (
+                                        <span className={styles.feedback} style={{ color: 'var(--success-color)', fontWeight: 600, fontSize: '0.9rem' }}>
+                                            {manningFeedback}
+                                        </span>
+                                    )}
                                     <button
                                         onClick={async () => {
                                             setSavingManning(true);
@@ -227,11 +231,25 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                                                 setSavingManning(false);
                                             }
                                         }}
-                                        className={styles.viewAllBtn}
-                                        style={{ background: 'var(--primary-color)', color: 'white', border: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem', height: '42px', padding: '0 1.5rem' }}
+                                        style={{
+                                            background: 'var(--primary-color)',
+                                            color: 'white',
+                                            border: 'none',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '0.75rem',
+                                            height: '48px',
+                                            padding: '0 2rem',
+                                            borderRadius: '12px',
+                                            fontWeight: 700,
+                                            boxShadow: '0 4px 12px rgba(124, 76, 44, 0.15)',
+                                            cursor: 'pointer'
+                                        }}
                                         disabled={savingManning}
                                     >
-                                        <Save size={16} /> {savingManning ? 'Syncing...' : 'Save Staffing Rules'}
+                                        {savingManning ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                                        {savingManning ? 'Syncing...' : 'Save Staffing Rules'}
                                     </button>
                                 </div>
                             </div>

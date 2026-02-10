@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { StaffMember, CreateStaffDTO } from '@/types';
+import { isAdmin, getUserRole, getUserId } from '@/lib/auth-utils';
 
 function parseStaff(row: any): StaffMember {
     return {
@@ -14,14 +15,32 @@ function parseStaff(row: any): StaffMember {
 
 export async function GET() {
     try {
-        const stmt = db.prepare(`
-        SELECT s.*, r.name as primary_role_name, v.name as home_venue_name
-        FROM staff s
-        LEFT JOIN roles r ON s.primary_role_id = r.id
-        LEFT JOIN venues v ON s.home_base_venue_id = v.id
-        ORDER BY s.full_name ASC
-    `);
-        const rows = stmt.all();
+        const role = getUserRole();
+        const userId = getUserId();
+
+        if (!role || !userId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        let query = `
+            SELECT s.*, r.name as primary_role_name, v.name as home_venue_name
+            FROM staff s
+            LEFT JOIN roles r ON s.primary_role_id = r.id
+            LEFT JOIN venues v ON s.home_base_venue_id = v.id
+        `;
+        let params: any[] = [];
+
+        if (role === "manager") {
+            const assigned = db.prepare("SELECT venue_id FROM manager_venues WHERE manager_id = ?").all(userId) as { venue_id: number }[];
+            const ids = assigned.map(v => v.venue_id).filter(id => id !== null);
+
+            if (ids.length === 0) return NextResponse.json([]);
+
+            query += ` WHERE s.home_base_venue_id IN (${ids.join(',')})`;
+        }
+
+        query += " ORDER BY s.full_name ASC";
+        const rows = db.prepare(query).all(...params);
         const staff = rows.map(parseStaff);
         return NextResponse.json(staff);
     } catch (error) {
@@ -32,6 +51,9 @@ export async function GET() {
 
 export async function POST(request: Request) {
     try {
+        if (!isAdmin()) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+        }
         const body = await request.json() as CreateStaffDTO;
 
         // Basic validation

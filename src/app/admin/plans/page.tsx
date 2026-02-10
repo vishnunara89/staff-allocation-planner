@@ -43,10 +43,17 @@ export default function AdminPlansPage() {
                 fetch('/api/venues')
             ]);
 
-            setPlans(await plansRes.json());
-            setVenues(await venuesRes.json());
+            const [plansJson, venuesJson] = await Promise.all([
+                plansRes.json().catch(() => []),
+                venuesRes.json().catch(() => [])
+            ]);
+
+            setPlans(Array.isArray(plansJson) ? plansJson : []);
+            setVenues(Array.isArray(venuesJson) ? venuesJson : []);
         } catch (error) {
             console.error("Failed to fetch plans data:", error);
+            setPlans([]);
+            setVenues([]);
         } finally {
             setLoading(false);
         }
@@ -55,8 +62,8 @@ export default function AdminPlansPage() {
     const getVenueName = (id: number) => venues.find(v => v.id === id)?.name || `ID: ${id}`;
 
     const filteredPlans = plans.filter(plan => {
-        const venueName = getVenueName(plan.venue_id).toLowerCase();
-        const matchesSearch = venueName.includes(searchQuery.toLowerCase()) || plan.event_date.includes(searchQuery);
+        const venueName = getVenueName(plan.venue_id)?.toLowerCase() || "";
+        const matchesSearch = venueName.includes(searchQuery.toLowerCase()) || (plan.event_date || "").includes(searchQuery);
         const matchesVenue = !filterVenue || plan.venue_id === Number(filterVenue);
         const matchesStatus = !filterStatus || plan.status === filterStatus;
         return matchesSearch && matchesVenue && matchesStatus;

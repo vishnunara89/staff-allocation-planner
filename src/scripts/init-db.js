@@ -2,24 +2,16 @@ const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
 
-const dbPath = path.join(process.cwd(), 'staff-planner-v2.db');
+const dbPath = path.join(process.cwd(), 'staff-planner.db');
 
-// Force delete existing corrupted or incomplete database
-if (fs.existsSync(dbPath)) {
-    try {
-        fs.unlinkSync(dbPath);
-        console.log('Cleared existing database.');
-    } catch (e) {
-        console.warn('Could not delete existing DB file, it might be in use.');
-    }
-}
+// Safe: no longer deletes existing data
 
 const db = new Database(dbPath);
 
 console.log(`Initializing COMPREHENSIVE database at ${dbPath}`);
 
 const schema = `
-CREATE TABLE venues (
+CREATE TABLE IF NOT EXISTS venues (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     type TEXT,
@@ -27,13 +19,13 @@ CREATE TABLE venues (
     notes TEXT
 );
 
-CREATE TABLE roles (
+CREATE TABLE IF NOT EXISTS roles (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     category TEXT
 );
 
-CREATE TABLE staffing_rules (
+CREATE TABLE IF NOT EXISTS staffing_rules (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     venue_id INTEGER,
     department TEXT,
@@ -49,7 +41,7 @@ CREATE TABLE staffing_rules (
     FOREIGN KEY(role_id) REFERENCES roles(id)
 );
 
-CREATE TABLE staff (
+CREATE TABLE IF NOT EXISTS staff (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     full_name TEXT NOT NULL,
     primary_role_id INTEGER,
@@ -66,7 +58,7 @@ CREATE TABLE staff (
     FOREIGN KEY(home_base_venue_id) REFERENCES venues(id)
 );
 
-CREATE TABLE events (
+CREATE TABLE IF NOT EXISTS events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     date TEXT NOT NULL,
     venue_id INTEGER,
@@ -79,7 +71,7 @@ CREATE TABLE events (
     FOREIGN KEY(venue_id) REFERENCES venues(id)
 );
 
-CREATE TABLE staffing_plans (
+CREATE TABLE IF NOT EXISTS staffing_plans (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     event_date TEXT,
     venue_id INTEGER,
@@ -92,7 +84,7 @@ CREATE TABLE staffing_plans (
     FOREIGN KEY(assigned_role_id) REFERENCES roles(id)
 );
 
-CREATE TABLE venue_manning_tables (
+CREATE TABLE IF NOT EXISTS venue_manning_tables (
     venue_id INTEGER,
     department TEXT,
     config_json TEXT, -- JSON
@@ -101,7 +93,7 @@ CREATE TABLE venue_manning_tables (
     FOREIGN KEY(venue_id) REFERENCES venues(id)
 );
 
-CREATE TABLE manning_brackets (
+CREATE TABLE IF NOT EXISTS manning_brackets (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     venue_id INTEGER,
     department TEXT,
@@ -114,24 +106,24 @@ CREATE TABLE manning_brackets (
     FOREIGN KEY(venue_id) REFERENCES venues(id)
 );
 
-CREATE TABLE requirements_catalog (
+CREATE TABLE IF NOT EXISTS requirements_catalog (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     type TEXT NOT NULL, -- 'skill', 'language', 'other'
     value TEXT NOT NULL
 );
 
--- Index for performance
-CREATE INDEX idx_staffing_plans_date ON staffing_plans(event_date);
-CREATE INDEX idx_events_date ON events(date);
+-- Indexes (idempotent)
+CREATE INDEX IF NOT EXISTS idx_staffing_plans_date ON staffing_plans(event_date);
+CREATE INDEX IF NOT EXISTS idx_events_date ON events(date);
 `;
 
 db.exec(schema);
 
 // --- SEED INITIAL DATA ---
 
-// 1. Roles
+// 1. Roles (idempotent)
 console.log('Seeding initial roles...');
-const insertRole = db.prepare('INSERT INTO roles (name, category) VALUES (?, ?)');
+const insertRole = db.prepare('INSERT OR IGNORE INTO roles (name, category) VALUES (?, ?)');
 const roles = [
     ['Waiter', 'Service'],
     ['Runner', 'Service'],
@@ -153,9 +145,9 @@ const roles = [
 ];
 roles.forEach(role => insertRole.run(role));
 
-// 2. Venues (Initial ones for better UX)
+// 2. Venues (idempotent)
 console.log('Seeding initial venues...');
-const insertVenue = db.prepare('INSERT INTO venues (name, type, default_service_style) VALUES (?, ?, ?)');
+const insertVenue = db.prepare('INSERT OR IGNORE INTO venues (name, type, default_service_style) VALUES (?, ?, ?)');
 const venues = [
     ['SONARA', 'camp', 'sharing'],
     ['NEST', 'camp', 'buffet'],
@@ -163,9 +155,9 @@ const venues = [
 ];
 venues.forEach(v => insertVenue.run(v));
 
-// 3. Requirements Catalog
+// 3. Requirements Catalog (idempotent)
 console.log('Seeding requirements catalog...');
-const insertReq = db.prepare('INSERT INTO requirements_catalog (type, value) VALUES (?, ?)');
+const insertReq = db.prepare('INSERT OR IGNORE INTO requirements_catalog (type, value) VALUES (?, ?)');
 const standardReqs = [
     ['language', 'Arabic'],
     ['language', 'French'],

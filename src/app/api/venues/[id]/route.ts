@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { Venue } from '@/types';
+import { isAdmin } from '@/lib/auth-utils';
 
 export async function GET(
     request: Request,
@@ -26,6 +27,9 @@ export async function PUT(
     { params }: { params: { id: string } }
 ) {
     try {
+        if (!isAdmin()) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+        }
         const id = params.id;
         const body = await request.json();
 
@@ -64,6 +68,9 @@ export async function DELETE(
     { params }: { params: { id: string } }
 ) {
     try {
+        if (!isAdmin()) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+        }
         const id = params.id;
 
         // Check for dependencies (Events, Rules)

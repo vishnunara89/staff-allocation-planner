@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import * as XLSX from 'xlsx';
+import { isAdmin } from '@/lib/auth-utils';
 
 function parseCSVRow(data: any, roles: any[], venues: any[]) {
     // Map role name to ID
@@ -39,6 +40,9 @@ function parseCSVRow(data: any, roles: any[], venues: any[]) {
 
 export async function POST(request: Request) {
     try {
+        if (!isAdmin()) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+        }
         const formData = await request.formData();
         const file = formData.get('file') as File;
 

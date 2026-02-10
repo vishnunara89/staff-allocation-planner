@@ -49,7 +49,7 @@ export default function VenueModal({ isOpen, onClose, onSuccess }: VenueModalPro
 
     return (
         <div className="modal-overlay" onClick={onClose}>
-            <div className="modal-container" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+            <div className="modal-container" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px' }}>
                 <div className="modal-header">
                     <div className="modal-header-title">
                         <h3>Add New Venue</h3>
@@ -60,41 +60,41 @@ export default function VenueModal({ isOpen, onClose, onSuccess }: VenueModalPro
 
                 <form onSubmit={handleSubmit}>
                     <div className="modal-body">
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                            <div className="form-group">
-                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.9rem' }}>Venue Name *</label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={formData.name}
-                                    onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                    placeholder="e.g. SONARA LUXURY CAMP"
-                                    style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '10px', border: '1.5px solid #e2e8f0', outline: 'none' }}
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.9rem' }}>Type</label>
-                                <select
-                                    value={formData.type}
-                                    onChange={e => setFormData({ ...formData, type: e.target.value })}
-                                    style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '10px', border: '1.5px solid #e2e8f0', outline: 'none', background: 'white' }}
-                                >
-                                    <option value="CAMP">CAMP</option>
-                                    <option value="LUXURY CAMP">LUXURY CAMP</option>
-                                    <option value="RESTAURANT">RESTAURANT</option>
-                                    <option value="SEASONAL">SEASONAL</option>
-                                    <option value="OFFICE">OFFICE</option>
-                                </select>
-                            </div>
-                            <div className="form-group">
-                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.9rem' }}>Brief Description</label>
-                                <textarea
-                                    value={formData.notes}
-                                    onChange={e => setFormData({ ...formData, notes: e.target.value })}
-                                    placeholder="Optional notes about this location..."
-                                    style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '10px', border: '1.5px solid #e2e8f0', outline: 'none', minHeight: '100px', resize: 'vertical' }}
-                                />
-                            </div>
+                        <div className="form-group-standard">
+                            <label className="form-label-standard">Venue Name *</label>
+                            <input
+                                type="text"
+                                required
+                                className="modal-input"
+                                value={formData.name}
+                                onChange={e => setFormData({ ...formData, name: e.target.value })}
+                                placeholder="e.g. SONARA LUXURY CAMP"
+                            />
+                        </div>
+                        <div className="form-group-standard">
+                            <label className="form-label-standard">Type</label>
+                            <select
+                                className="modal-input"
+                                value={formData.type}
+                                onChange={e => setFormData({ ...formData, type: e.target.value })}
+                                style={{ background: 'var(--input-bg)' }}
+                            >
+                                <option value="CAMP">CAMP</option>
+                                <option value="LUXURY CAMP">LUXURY CAMP</option>
+                                <option value="RESTAURANT">RESTAURANT</option>
+                                <option value="SEASONAL">SEASONAL</option>
+                                <option value="OFFICE">OFFICE</option>
+                            </select>
+                        </div>
+                        <div className="form-group-standard">
+                            <label className="form-label-standard">Brief Description</label>
+                            <textarea
+                                className="modal-input"
+                                value={formData.notes}
+                                onChange={e => setFormData({ ...formData, notes: e.target.value })}
+                                placeholder="Optional notes about this location..."
+                                style={{ minHeight: '120px', padding: '1rem', resize: 'vertical' }}
+                            />
                         </div>
                     </div>
 
@@ -103,14 +103,14 @@ export default function VenueModal({ isOpen, onClose, onSuccess }: VenueModalPro
                             type="button"
                             onClick={onClose}
                             className="secondary"
-                            style={{ padding: '0.75rem 1.5rem', borderRadius: '10px', border: '1.5px solid #e2e8f0', background: 'white', fontWeight: 600, cursor: 'pointer' }}
+                            style={{ height: '48px', padding: '0 2rem' }}
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            style={{ padding: '0.75rem 1.5rem', borderRadius: '10px', border: 'none', background: 'var(--primary-color)', color: 'white', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                            style={{ height: '48px', padding: '0 2rem' }}
                         >
                             {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <Plus size={18} />}
                             Create Venue

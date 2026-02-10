@@ -1,463 +1,210 @@
 .container {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
     padding: 2rem;
     max-width: 1400px;
     margin: 0 auto;
     width: 100%;
 }
 
+/* Shared Form Tokens for Venues */
+.container {
+    --input-height: 48px;
+    --input-bg: #F8FAFC;
+    --input-border: #E2E8F0;
+    --input-focus-shadow: 0 0 0 4px rgba(124, 76, 44, 0.05);
+    --button-radius: 12px;
+}
+
 .header {
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
-    margin-bottom: 3rem;
+    margin-bottom: 2rem;
     flex-wrap: wrap;
     gap: 1.5rem;
 }
 
 .headerText h2 {
+    font-family: var(--font-cormorant), serif;
     font-size: 2rem;
-    margin: 0 0 0.5rem 0;
-    color: var(--secondary-color);
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 0.25rem;
 }
 
 .headerText p {
-    margin: 0;
-    color: var(--muted-color);
-    font-size: 1rem;
-}
-
-.actions {
-    display: flex;
-    gap: 1rem;
-    align-items: center;
-}
-
-.searchInput {
-    padding: 0.75rem 1rem;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
+    color: #64748b;
     font-size: 0.95rem;
-    width: 250px;
-    transition: all 0.2s;
-    background-color: var(--card-bg);
 }
 
-.searchInput:focus {
-    outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(124, 76, 44, 0.1);
-    /* Primary color low opacity */
-}
-
-.primaryButton {
-    background: var(--primary-color);
-    color: white;
-    padding: 0.75rem 1.5rem;
-    border-radius: 8px;
-    text-decoration: none;
-    font-weight: 500;
-    transition: opacity 0.2s;
-    white-space: nowrap;
-}
-
-.primaryButton:hover {
-    opacity: 0.9;
-}
-
-.secondaryButton {
-    background: transparent;
-    border: 1px solid var(--primary-color);
-    color: var(--primary-color);
-    padding: 0.75rem 1.5rem;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 500;
-    transition: background 0.2s;
-}
-
-.secondaryButton:hover {
-    background: rgba(124, 76, 44, 0.05);
-}
-
-/* Grid & Cards */
-.grid {
+.venueGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 2rem;
+    grid-template-columns: repeat(3, 1fr);
+    row-gap: 3rem;
+    column-gap: 2rem;
 }
 
-.card {
-    background: var(--card-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
+@media (max-width: 1280px) {
+    .venueGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .venueGrid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.venueItem {
+    position: relative;
+    display: flex;
+}
+
+.venueCard {
+    background: white;
+    border-radius: 16px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
     padding: 1.5rem;
-    text-decoration: none;
-    color: inherit;
-    transition: all 0.2s ease;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-    min-height: 160px;
+    gap: 1.25rem;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    width: auto;
+    flex: 1;
+    box-sizing: border-box;
 }
 
-.card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.06);
+.venueCard:hover {
     border-color: var(--primary-color);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .cardHeader {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 1rem;
 }
 
-.cardHeader h3 {
-    margin: 0;
-    font-size: 1.25rem;
-    color: var(--secondary-color);
-}
-
-.badge {
-    background: var(--accent-color);
-    color: var(--secondary-color);
-    padding: 0.25rem 0.75rem;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-weight: 600;
+.venueType {
+    padding: 2px 10px;
+    background: #f1f5f9;
+    color: #475569;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.05em;
 }
 
-.cardBody p {
-    margin: 0;
-    color: var(--muted-color);
-    font-size: 0.95rem;
-}
-
-.cardBody strong {
-    color: var(--text-color);
-    text-transform: capitalize;
-}
-
-/* States */
-.error {
-    color: #d32f2f;
-    background: #fdecea;
-    padding: 1rem;
-    border-radius: 8px;
-}
-
-.emptyState {
-    text-align: center;
-    padding: 4rem 2rem;
-    background: var(--card-bg);
-    border-radius: 12px;
-    border: 1px dashed var(--border-color);
-}
-
-.emptyState h3 {
-    margin-top: 0;
-    color: var(--secondary-color);
-}
-
-.emptyState p {
-    color: var(--muted-color);
-    margin-bottom: 1.5rem;
-}
-
-/* Skeleton Loading */
-.skeleton {
-    pointer-events: none;
-    border-color: transparent;
-}
-
-.skeletonTitle,
-.skeletonBadge,
-.skeletonText {
-    background: #eee;
-    border-radius: 4px;
-    animation: pulse 1.5s infinite ease-in-out;
-}
-
-.skeletonTitle {
-    width: 50%;
-    height: 24px;
-    margin-bottom: 1rem;
-}
-
-.skeletonBadge {
-    width: 60px;
-    height: 20px;
-    float: right;
-    margin-top: -30px;
-}
-
-.skeletonText {
-    width: 80%;
-    height: 16px;
-    margin-top: auto;
-}
-
-@keyframes pulse {
-    0% {
-        opacity: 0.6;
-    }
-
-    50% {
-        opacity: 0.8;
-    }
-
-    100% {
-        opacity: 0.6;
-    }
-}
-
-@media (max-width: 600px) {
-    .header {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .actions {
-        width: 100%;
-        flex-direction: column;
-    }
-
-    .searchInput {
-        width: 100%;
-    }
-
-    .primaryButton,
-    .secondaryButton {
-        width: 100%;
-        text-align: center;
-    }
-}
-
-/* ===== Add Venue Modal ===== */
-.modalOverlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(4px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    padding: 1rem;
-    animation: fadeIn 0.2s ease;
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-
-    to {
-        opacity: 1;
-    }
-}
-
-.modal {
-    background: white;
-    border-radius: 12px;
-    width: 100%;
-    max-width: 480px;
-    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
-    animation: scaleUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    transform-origin: center center;
-}
-
-@keyframes scaleUp {
-    from {
-        opacity: 0;
-        transform: scale(0.95);
-    }
-
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
-}
-
-.modalHeader {
-    background: var(--primary-color);
-    padding: 1.5rem 2rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.modalHeader h2 {
-    margin: 0;
-    color: white;
-    font-size: 1.35rem;
-    font-weight: 600;
-}
-
-.closeButton {
-    background: rgba(255, 255, 255, 0.2);
-    border: none;
-    color: white;
-    font-size: 1.5rem;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 0.2s;
-}
-
-.closeButton:hover {
-    background: rgba(255, 255, 255, 0.3);
-}
-
-.modalError {
-    background: #fff5f5;
-    color: #c53030;
-    padding: 0.75rem 2rem;
-    font-size: 0.9rem;
-    border-left: 4px solid #fc8181;
-}
-
-.modalForm {
-    padding: 2rem;
-    box-sizing: border-box;
-    /* Ensure padding doesn't affect width */
-}
-
-.formGroup {
-    margin-bottom: 1.25rem;
-}
-
-.formGroup label {
-    display: block;
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--secondary-color);
-    margin-bottom: 0.5rem;
-}
-
-.required {
-    color: var(--primary-color);
-}
-
-.formRow {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-}
-
-.modalInput,
-.modalSelect,
-.modalTextarea {
-    width: 100%;
-    box-sizing: border-box;
-    padding: 0 1rem;
-    border: 1.5px solid #e0e0e0;
-    border-radius: 12px;
-    font-size: 0.95rem;
-    transition: border-color 0.2s, box-shadow 0.2s;
-    background: #F8FAFC;
-}
-
-.modalInput,
-.modalSelect {
-    height: 48px;
-    padding: 0 1.25rem;
-}
-
-.modalTextarea {
-    padding: 1rem 1.25rem;
-}
-
-.modalInput:focus,
-.modalSelect:focus,
-.modalTextarea:focus {
-    outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(124, 76, 44, 0.15);
-    /* Brown shadow */
-    background: white;
-}
-
-.modalTextarea {
-    resize: vertical;
-    min-height: 80px;
-}
-
-.modalActions {
-    display: flex;
-    gap: 1rem;
-    padding-top: 1rem;
-    border-top: 1px solid #eee;
+.venueTitle h3 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 0.25rem;
     margin-top: 0.5rem;
 }
 
-.cancelButton {
-    flex: 1;
-    padding: 0.875rem 1.5rem;
-    border: 1.5px solid #e0e0e0;
-    background: white;
-    border-radius: 8px;
-    font-size: 0.95rem;
-    font-weight: 500;
-    color: var(--muted-color);
-    cursor: pointer;
-    transition: all 0.2s;
+.venueNotes {
+    font-size: 0.85rem;
+    color: #64748b;
+    line-height: 1.5;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    margin: 0;
 }
 
-.cancelButton:hover {
-    border-color: #bbb;
-    color: var(--secondary-color);
+.cardMetrics {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid #f1f5f9;
+    margin-top: auto;
 }
 
-.submitButton {
-    flex: 1;
-    padding: 0.875rem 1.5rem;
-    background: var(--primary-color);
-    /* Nara Brown */
-    border: none;
-    border-radius: 8px;
-    font-size: 0.95rem;
+.metric {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.metricValue {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.metricLabel {
+    font-size: 0.75rem;
     font-weight: 600;
-    color: white;
-    cursor: pointer;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.venueFooter {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-top: 0.5rem;
+}
+
+.viewDetail {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.searchContainer {
+    background: white;
+    padding: 1rem;
+    border-radius: 16px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.searchInputWrapper {
+    position: relative;
+    flex: 1;
+    max-width: 400px;
+}
+
+.searchInput {
+    width: 100%;
+    height: 48px;
+    padding: 0 1rem 0 3rem;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    background: #f8fafc;
+    outline: none;
+    font-size: 0.95rem;
     transition: all 0.2s;
-    box-shadow: 0 4px 12px rgba(124, 76, 44, 0.3);
 }
 
-.submitButton:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(124, 76, 44, 0.4);
+.searchInput:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 4px rgba(124, 76, 44, 0.05);
 }
 
-.submitButton:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-@media (max-width: 600px) {
-    .modal {
-        max-height: 95vh;
-    }
-
-    .modalForm {
-        padding: 1.5rem;
-    }
-
-    .formRow {
-        grid-template-columns: 1fr;
-    }
-
-    .modalActions {
-        flex-direction: column-reverse;
-    }
+.searchIcon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
 }

@@ -97,20 +97,20 @@ export default function NewPlanModal({ isOpen, onClose, onGenerate, venues, exis
                                     }}
                                 >
                                     <div>
-                                        <div style={{ fontWeight: 700, color: 'var(--secondary-color)', fontSize: '1.1rem', letterSpacing: '-0.01em' }}>
+                                        <div style={{ fontWeight: 700, color: 'var(--secondary-color)', fontSize: '1.25rem', letterSpacing: '-0.01em' }}>
                                             {getVenueName(event.venue_id)}
                                         </div>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.5rem' }}>
-                                            <div style={{ fontSize: '0.85rem', color: 'var(--muted-color)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                            <div style={{ fontSize: '0.9rem', color: 'var(--muted-color)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                                                 <Calendar size={14} />
                                                 {new Date(event.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
                                             </div>
-                                            <div style={{ fontSize: '0.85rem', color: 'var(--muted-color)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                            <div style={{ fontSize: '0.9rem', color: 'var(--muted-color)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                                                 <Clock size={14} />
                                                 {event.start_time} - {event.end_time}
                                             </div>
                                         </div>
-                                        <div style={{ fontSize: '0.85rem', color: 'var(--primary-color)', marginTop: '0.6rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                        <div style={{ fontSize: '0.95rem', color: 'var(--primary-color)', marginTop: '0.6rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                                             <Users size={14} />
                                             {event.guest_count} Guests
                                         </div>

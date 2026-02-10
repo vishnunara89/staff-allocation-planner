@@ -5,13 +5,14 @@ import { isAdmin } from "@/lib/auth-utils";
 
 export const dynamic = "force-dynamic";
 
-/* =====================
-   GET – List Managers
-===================== */
+/* ======================================================
+   GET – List Managers (SINGLE SOURCE OF TRUTH)
+====================================================== */
 export async function GET() {
   if (!isAdmin()) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
+
   try {
     const managers = db.prepare(`
       SELECT id, name, phone, username
@@ -22,16 +23,21 @@ export async function GET() {
 
     const result = managers.map((m: any) => {
       const assigned = db.prepare(`
-        SELECT mv.venue_id, v.name as venue_name
-        FROM manager_venues mv
-        LEFT JOIN venues v ON mv.venue_id = v.id
-        WHERE mv.manager_id = ?
-      `).all(m.id) as { venue_id: number, venue_name: string }[];
+        SELECT venue_id, venue_name
+        FROM manager_venues
+        WHERE manager_id = ?
+      `).all(m.id) as { venue_id: number; venue_name: string }[];
 
       return {
-        ...m,
-        venueIds: assigned.map(v => v.venue_id).filter(id => id !== null),
-        venues: assigned.map(v => v.venue_name).filter(name => name !== null)
+        id: m.id,
+        name: m.name,
+        phone: m.phone,
+        username: m.username,
+
+        // ✅ ALWAYS DERIVED FROM DB
+        venueIds: assigned.map(v => v.venue_id),
+        venues: assigned.map(v => v.venue_name),
+        venueCount: assigned.length
       };
     });
 
@@ -42,15 +48,15 @@ export async function GET() {
   }
 }
 
-/* =====================
-   POST – Create Manager
-===================== */
-// ... (POST remains same)
+/* ======================================================
+   POST – Create Manager (ADMIN ONLY)
+====================================================== */
 export async function POST(req: Request) {
   try {
     if (!isAdmin()) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
+
     const { name, phone, username, password } = await req.json();
 
     if (!name || !phone || !username || !password) {
@@ -60,9 +66,9 @@ export async function POST(req: Request) {
       );
     }
 
-    const exists = db
-      .prepare("SELECT id FROM users WHERE username = ?")
-      .get(username);
+    const exists = db.prepare(
+      "SELECT id FROM users WHERE username = ?"
+    ).get(username);
 
     if (exists) {
       return NextResponse.json(
@@ -71,12 +77,12 @@ export async function POST(req: Request) {
       );
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hash = await bcrypt.hash(password, 10);
 
     db.prepare(`
       INSERT INTO users (name, phone, username, password, role)
       VALUES (?, ?, ?, ?, 'manager')
-    `).run(name, phone, username, hashedPassword);
+    `).run(name, phone, username, hash);
 
     return NextResponse.json({ success: true });
   } catch (err) {
@@ -88,14 +94,15 @@ export async function POST(req: Request) {
   }
 }
 
-/* =====================
-   PUT – Assign Venues
-===================== */
+/* ======================================================
+   PUT – Assign Venues (CRITICAL + SAFE)
+====================================================== */
 export async function PUT(req: Request) {
   try {
     if (!isAdmin()) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
+
     const { managerId, venueIds } = await req.json();
 
     if (!managerId || !Array.isArray(venueIds)) {
@@ -105,53 +112,80 @@ export async function PUT(req: Request) {
       );
     }
 
-    // Clear existing
-    db.prepare(
-      "DELETE FROM manager_venues WHERE manager_id = ?"
-    ).run(managerId);
+    const tx = db.transaction(() => {
+      // 1️⃣ Clear old assignments
+      db.prepare(
+        "DELETE FROM manager_venues WHERE manager_id = ?"
+      ).run(managerId);
 
-    const insert = db.prepare(`
-      INSERT INTO manager_venues (manager_id, venue_id)
-      VALUES (?, ?)
-    `);
+      // 2️⃣ Insert new assignments WITH venue_name
+      const getVenue = db.prepare(
+        "SELECT id, name FROM venues WHERE id = ?"
+      );
 
-    venueIds.forEach((vid: number) => {
-      if (vid) insert.run(managerId, vid);
+      const insert = db.prepare(`
+        INSERT INTO manager_venues (manager_id, venue_id, venue_name)
+        VALUES (?, ?, ?)
+      `);
+
+      venueIds.forEach((vid: number) => {
+        const venue = getVenue.get(vid) as { id: number; name: string };
+
+        if (!venue) {
+          throw new Error("Venue not found: " + vid);
+        }
+
+        insert.run(managerId, venue.id, venue.name);
+      });
     });
 
-    return NextResponse.json({ success: true });
+    tx();
+
+    return NextResponse.json({
+      success: true,
+      assignedCount: venueIds.length
+    });
   } catch (err) {
     console.error("Assign venues error:", err);
     return NextResponse.json(
-      { error: "Server error" },
+      { error: "Failed to assign venues" },
       { status: 500 }
     );
   }
 }
 
-/* =====================
+/* ======================================================
    DELETE – Remove Manager
-===================== */
+====================================================== */
 export async function DELETE(req: Request) {
   try {
     if (!isAdmin()) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
+
     const { managerId } = await req.json();
 
     if (!managerId) {
-      return NextResponse.json({ error: "Manager ID required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Manager ID required" },
+        { status: 400 }
+      );
     }
 
-    // Remove venue assignments first
-    db.prepare("DELETE FROM manager_venues WHERE manager_id = ?").run(managerId);
+    db.prepare(
+      "DELETE FROM manager_venues WHERE manager_id = ?"
+    ).run(managerId);
 
-    // Remove user
-    db.prepare("DELETE FROM users WHERE id = ? AND role = 'manager'").run(managerId);
+    db.prepare(
+      "DELETE FROM users WHERE id = ? AND role = 'manager'"
+    ).run(managerId);
 
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("Delete manager error:", err);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Server error" },
+      { status: 500 }
+    );
   }
 }

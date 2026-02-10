@@ -423,3 +423,466 @@
         transform: translateY(0);
     }
 }
+
+/* =====================================================
+   NEW CLASSES FOR VENUE DETAIL UI REDESIGN
+===================================================== */
+
+/* Role & Skill Dropdowns in Grid */
+/* Role & Skill Dropdowns in Grid */
+.roleSelect,
+.skillSelect {
+    height: 40px;
+    padding: 0 2rem 0 0.75rem;
+    border: 1.5px solid #E2E8F0;
+    border-radius: 10px;
+    background: #F8FAFC;
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--secondary-color);
+    outline: none;
+    cursor: pointer;
+    width: 100%;
+    min-width: 160px;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    transition: all 0.2s;
+}
+
+.roleSelect:focus,
+.skillSelect:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 4px rgba(124, 76, 44, 0.05);
+}
+
+.roleSelect:hover,
+.skillSelect:hover {
+    border-color: #CBD5E1;
+}
+
+/* Horizontal Scroll Container */
+.excelGridContainer {
+    overflow-x: auto;
+    border-radius: 12px;
+    border: 1.5px solid #E2E8F0;
+    background: white;
+
+    /* Modern thin scrollbar */
+    scrollbar-width: thin;
+    scrollbar-color: #CBD5E1 transparent;
+}
+
+.excelGridContainer::-webkit-scrollbar {
+    height: 6px;
+}
+
+.excelGridContainer::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.excelGridContainer::-webkit-scrollbar-thumb {
+    background: #CBD5E1;
+    border-radius: 3px;
+}
+
+.excelGridContainer::-webkit-scrollbar-thumb:hover {
+    background: #94A3B8;
+}
+
+/* Sticky Columns */
+.excelGrid .stickyTrash {
+    position: sticky;
+    left: 0;
+    z-index: 3;
+    background: white;
+    width: 45px;
+    min-width: 45px;
+    text-align: center;
+}
+
+.excelGrid .stickyCol {
+    position: sticky;
+    left: 45px;
+    z-index: 2;
+    background: white;
+    min-width: 180px;
+}
+
+.excelGrid .stickyColSkill {
+    position: sticky;
+    left: 225px;
+    z-index: 2;
+    background: white;
+    min-width: 180px;
+    border-left: 1px solid #f1f5f9;
+}
+
+.removeRoleBtn {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+    border-radius: 8px;
+    transition: all 0.2s;
+    margin: 0 auto;
+}
+
+.removeRoleBtn:hover {
+    color: #ef4444;
+    background: #fef2f2;
+}
+
+/* Stepper Input */
+.stepperContainer {
+    display: flex;
+    align-items: center;
+    border: 1.5px solid #E2E8F0;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #F8FAFC;
+    width: 70px;
+    height: 40px;
+}
+
+.stepperInput {
+    width: 36px;
+    height: 100%;
+    border: none;
+    background: transparent;
+    text-align: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--secondary-color);
+    outline: none;
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+.stepperInput::-webkit-outer-spin-button,
+.stepperInput::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.stepperButtons {
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid #E2E8F0;
+    height: 100%;
+}
+
+.stepperUp,
+.stepperDown {
+    flex: 1;
+    width: 28px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.55rem;
+    color: #94A3B8;
+    padding: 0;
+    line-height: 1;
+}
+
+
+
+.stepperUp {
+    border-bottom: 1px solid #E2E8F0;
+}
+
+.bracketLabel {
+    font-weight: 700;
+    color: #64748b;
+    font-size: 0.85rem;
+}
+
+/* Saved Rules Section */
+.savedRulesSection {
+    margin-top: 2rem;
+    padding: 1.5rem;
+    background: #f8fafc;
+    border-radius: 16px;
+    border: 1px solid #f1f5f9;
+    width: 97%;
+}
+
+.savedRulesTitle {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.savedTableSubtitle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.deleteTableBtn {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.4rem;
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+.deleteTableBtn:hover {
+    color: #ef4444;
+    background: #fef2f2;
+}
+
+.savedRulesTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+}
+
+.savedRulesTable th {
+    text-align: left;
+    padding: 0.75rem 1rem;
+    font-weight: 700;
+    color: #64748b;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid #e2e8f0;
+    white-space: nowrap;
+}
+
+.savedRulesTable td {
+    padding: 0.75rem 1rem;
+    font-weight: 600;
+    color: #1a1a1a;
+    border-bottom: 1px solid #f1f5f9;
+    white-space: nowrap;
+}
+
+/* Horizontal Scroll Container override for compactness */
+.excelGridContainer {
+    overflow-x: auto;
+    overflow-y: auto;
+    max-height: 400px;
+    border-radius: 12px;
+    border: 1.5px solid #E2E8F0;
+    background: white;
+
+    /* Modern thin scrollbar */
+    scrollbar-width: thin;
+    scrollbar-color: #CBD5E1 transparent;
+}
+
+/* Edit Venue */
+.editVenueBtn {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: rgba(124, 76, 44, 0.08);
+    color: var(--primary-color);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.editVenueBtn:hover {
+    background: var(--primary-color);
+    color: white;
+}
+
+.editVenueForm {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 0;
+}
+
+.editVenueForm input,
+.editVenueForm select {
+    height: 44px;
+    padding: 0 1rem;
+    border: 1.5px solid #E2E8F0;
+    border-radius: 10px;
+    background: #F8FAFC;
+    font-weight: 600;
+    font-size: 0.95rem;
+    outline: none;
+}
+
+.editVenueForm input:focus,
+.editVenueForm select:focus {
+    border-color: var(--primary-color);
+    box-shadow: var(--input-focus-shadow);
+}
+
+/* Assigned Managers */
+.managerCard {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    border-radius: 12px;
+    transition: background 0.2s;
+}
+
+.managerCard:hover {
+    background: #f8fafc;
+}
+
+.managerAvatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: rgba(124, 76, 44, 0.1);
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.managerInfo {
+    flex: 1;
+    min-width: 0;
+}
+
+.managerName {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: #1a1a1a;
+}
+
+.managerPhone {
+    font-size: 0.8rem;
+    color: #94a3b8;
+}
+
+.managerActions {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+.contactBtn {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    font-size: 1rem;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.contactBtn:hover {
+    transform: scale(1.1);
+}
+
+/* Activity Log */
+.sectionTitle {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.emptyActivity {
+    text-align: center;
+    padding: 1.5rem 1rem;
+    color: #94a3b8;
+    font-size: 0.85rem;
+}
+
+.emptySubtext {
+    font-size: 0.8rem;
+    color: #cbd5e1;
+    margin-top: 0.25rem;
+}
+
+.activityList {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.activityItem {
+    display: flex;
+    gap: 0.75rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.activityItem:last-child {
+    border-bottom: none;
+}
+
+.activityDot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    margin-top: 0.5rem;
+    flex-shrink: 0;
+}
+
+.activityContent {
+    flex: 1;
+}
+
+.activityHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 0.25rem;
+}
+
+.activityHeader strong {
+    font-size: 0.85rem;
+    color: #1a1a1a;
+}
+
+.activityTime {
+    font-size: 0.75rem;
+    color: #94a3b8;
+}
+
+.activityAction {
+    font-size: 0.8rem;
+    color: #64748b;
+    margin-bottom: 0.25rem;
+}
+
+.activityReason {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    background: #f8fafc;
+    padding: 0.4rem 0.6rem;
+    border-radius: 6px;
+    border-left: 3px solid var(--primary-color);
+}

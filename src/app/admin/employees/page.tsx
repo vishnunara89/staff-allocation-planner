@@ -37,22 +37,28 @@ export default function AdminEmployeesPage() {
     }, []);
 
     async function fetchData() {
-        setLoading(true);
-        try {
-            const [staffData, venuesData, rolesData] = await Promise.all([
-                fetch('/api/staff').then(r => r.json()),
-                fetch('/api/venues').then(r => r.json()),
-                fetch('/api/roles').then(r => r.json())
-            ]);
-            setStaff(staffData);
-            setVenues(venuesData);
-            setRoles(rolesData);
-        } catch (err) {
-            console.error('Failed to fetch admin employee data:', err);
-        } finally {
-            setLoading(false);
-        }
-    }
+  setLoading(true);
+  try {
+    const [staffRes, venuesRes, rolesRes] = await Promise.all([
+      fetch("/api/staff").then(r => r.json()),
+      fetch("/api/venues").then(r => r.json()),
+      fetch("/api/roles").then(r => r.json()),
+    ]);
+
+    setStaff(Array.isArray(staffRes) ? staffRes : staffRes.data ?? []);
+    setVenues(Array.isArray(venuesRes) ? venuesRes : venuesRes.data ?? []);
+    setRoles(Array.isArray(rolesRes) ? rolesRes : rolesRes.data ?? []);
+
+  } catch (err) {
+    console.error("Failed to fetch admin employee data:", err);
+    setStaff([]);
+    setVenues([]);
+    setRoles([]);
+  } finally {
+    setLoading(false);
+  }
+}
+
 
     const getVenueName = (id?: number | null) => {
         if (!id) return '-';

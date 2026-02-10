@@ -41,6 +41,24 @@ if (!globalForDb.sqlite) {
       )
     `).run();
     console.log("✅ venues table verified");
+/* =========================
+   EMPLOYEES TABLE
+========================= */
+database.prepare(`
+  CREATE TABLE IF NOT EXISTS employees (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    full_name TEXT NOT NULL,
+    primary_role_id INTEGER NOT NULL,
+    home_base_venue_id INTEGER,
+    notes TEXT,
+    availability_status TEXT DEFAULT 'available',
+    english_proficiency TEXT,
+    other_languages TEXT,
+    special_skills TEXT,
+    employment_type TEXT,
+    FOREIGN KEY (primary_role_id) REFERENCES roles(id)
+  )
+`).run();
 
     // ✅ STAFFING RULES (FIXES /api/rules ERROR)
     database.prepare(`
@@ -57,6 +75,24 @@ if (!globalForDb.sqlite) {
       )
     `).run();
     console.log("✅ staffing_rules table verified");
+/* =========================
+   EMPLOYEES TABLE
+========================= */
+database.prepare(`
+  CREATE TABLE IF NOT EXISTS employees (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    full_name TEXT NOT NULL,
+    primary_role_id INTEGER NOT NULL,
+    home_base_venue_id INTEGER,
+    notes TEXT,
+    availability_status TEXT DEFAULT 'available',
+    english_proficiency TEXT,
+    other_languages TEXT,
+    special_skills TEXT,
+    employment_type TEXT,
+    FOREIGN KEY (primary_role_id) REFERENCES roles(id)
+  )
+`).run();
 
     /* =====================
        OTHER TABLES

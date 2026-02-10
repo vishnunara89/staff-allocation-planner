@@ -1,6 +1,6 @@
 import Database from "better-sqlite3";
-import type { Database as DatabaseType } from "better-sqlite3";
 import path from "path";
+import type { Database as DatabaseType } from "better-sqlite3";
 
 import { ensureUsersExist } from "./ensureUsersExist";
 import { ensurePlansExist } from "./ensurePlansExist";
@@ -8,7 +8,7 @@ import { ensureManagerVenuesExist } from "./ensureManagerVenuesExist";
 
 const dbPath = path.join(process.cwd(), "staff-planner.db");
 
-// Prevent multiple DB connections in dev (Next.js hot reload)
+// Prevent multiple DB connections in dev (Next.js hot reload safe)
 const globalForDb = global as unknown as {
   sqlite?: DatabaseType;
 };
@@ -26,7 +26,40 @@ if (!globalForDb.sqlite) {
     database.pragma("foreign_keys = ON");
 
     /* =====================
-       ENSURE TABLES EXIST
+       CORE TABLES
+    ===================== */
+
+    // ✅ VENUES
+    database.prepare(`
+      CREATE TABLE IF NOT EXISTS venues (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL UNIQUE,
+        type TEXT NOT NULL,
+        default_service_style TEXT NOT NULL,
+        notes TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `).run();
+    console.log("✅ venues table verified");
+
+    // ✅ STAFFING RULES (FIXES /api/rules ERROR)
+    database.prepare(`
+      CREATE TABLE IF NOT EXISTS staffing_rules (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        venue_id INTEGER NOT NULL,
+        role_id INTEGER NOT NULL,
+        min_required INTEGER NOT NULL DEFAULT 0,
+        max_allowed INTEGER,
+        notes TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+        FOREIGN KEY (venue_id) REFERENCES venues(id) ON DELETE CASCADE
+      )
+    `).run();
+    console.log("✅ staffing_rules table verified");
+
+    /* =====================
+       OTHER TABLES
     ===================== */
     ensureUsersExist(database);
     ensurePlansExist(database);

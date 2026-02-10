@@ -7,7 +7,9 @@ import {
   FileDown,
   UserPlus,
   X,
-  Loader2
+  Loader2,
+  Trash2,
+  ArrowLeft
 } from "lucide-react";
 import styles from "./employees.module.css";
 import CustomDropdown from "@/components/CustomDropdown";
@@ -35,19 +37,23 @@ export default function AdminEmployeesPage() {
   const [venues, setVenues] = useState<Venue[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
+  const [searchQuery, setSearchQuery] = useState("");
   const [filterRole, setFilterRole] = useState("");
   const [filterVenue, setFilterVenue] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
+
+  const [selectedEmployee, setSelectedEmployee] = useState<StaffMember | null>(null);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   useEffect(() => {
     fetchData();
   }, []);
 
+  /* =========================
+     FETCH DATA
+  ========================= */
   async function fetchData() {
     setLoading(true);
     try {
@@ -63,7 +69,8 @@ export default function AdminEmployeesPage() {
           secondary_roles: safeJSON(s.secondary_roles, []),
           other_languages: safeJSON(s.other_languages, {}),
           special_skills: safeJSON(s.special_skills, []),
-          experience_tags: safeJSON(s.experience_tags, [])
+          experience_tags: safeJSON(s.experience_tags, []),
+          employee_role: s.employee_role || "staff"
         })
       );
 
@@ -71,33 +78,83 @@ export default function AdminEmployeesPage() {
       setVenues(Array.isArray(venuesRes) ? venuesRes : []);
       setRoles(Array.isArray(rolesRes) ? rolesRes : []);
     } catch (err) {
-      console.error("Failed to fetch admin employee data:", err);
-      setStaff([]);
-      setVenues([]);
-      setRoles([]);
+      console.error("Fetch error:", err);
     } finally {
       setLoading(false);
     }
   }
 
+  /* =========================
+     HELPERS
+  ========================= */
   const getVenueName = (id?: number | null) =>
     venues.find(v => v.id === id)?.name || "-";
 
   const getRoleName = (id: number) =>
     roles.find(r => r.id === id)?.name || "-";
 
-  const filteredEmployees = staff.filter(s => {
+  /* =========================
+     FILTER
+  ========================= */
+  const filteredEmployees = staff.filter(emp => {
     const matchesSearch =
-      s.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (extractPhone(s.notes) || "").includes(searchQuery);
+      emp.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (extractPhone(emp.notes) || "").includes(searchQuery);
 
-    const matchesRole = !filterRole || s.primary_role_id === Number(filterRole);
-    const matchesVenue = !filterVenue || s.home_base_venue_id === Number(filterVenue);
-    const matchesStatus = !filterStatus || s.availability_status === filterStatus;
+    const matchesRole = !filterRole || emp.primary_role_id === Number(filterRole);
+    const matchesVenue = !filterVenue || emp.home_base_venue_id === Number(filterVenue);
+    const matchesStatus = !filterStatus || emp.availability_status === filterStatus;
 
     return matchesSearch && matchesRole && matchesVenue && matchesStatus;
   });
 
+  /* =========================
+     EXPORT CSV
+  ========================= */
+  function exportCSV() {
+    const headers = ["Name", "Role", "Venue", "Phone", "Status", "Employee Role"];
+    const rows = filteredEmployees.map(e => [
+      e.full_name,
+      getRoleName(e.primary_role_id),
+      getVenueName(e.home_base_venue_id),
+      extractPhone(e.notes) || "",
+      e.availability_status,
+      e.employee_role
+    ]);
+
+    const csv = [headers, ...rows]
+      .map(r => r.map(v => `"${v}"`).join(","))
+      .join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "employees.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  /* =========================
+     DELETE EMPLOYEE
+  ========================= */
+  async function deleteEmployee(id: number) {
+    if (!window.confirm("Are you sure you want to delete this employee?")) return;
+
+    try {
+      const res = await fetch(`/api/staff/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      setSelectedEmployee(null);
+      fetchData();
+    } catch {
+      alert("Failed to delete employee");
+    }
+  }
+
+  /* =========================
+     LOADING
+  ========================= */
   if (loading) {
     return (
       <div className={styles.container} style={{ display: "flex", justifyContent: "center", minHeight: "60vh" }}>
@@ -115,7 +172,9 @@ export default function AdminEmployeesPage() {
           <p>Global workforce data across all operational sites.</p>
         </div>
         <div className={styles.actions}>
-          <button className={styles.buttonSecondary}><FileDown size={18} /> Export</button>
+          <button className={styles.buttonSecondary} onClick={exportCSV}>
+            <FileDown size={18} /> Export
+          </button>
           <button className={styles.buttonSecondary} onClick={() => setIsImportModalOpen(true)}>
             <FileUp size={18} /> Bulk Import
           </button>
@@ -125,71 +184,108 @@ export default function AdminEmployeesPage() {
         </div>
       </header>
 
-      {/* ===== FILTERS ===== */}
-      <div className={styles.toolbar}>
-        <div className={styles.filterGrid}>
-          <div style={{ position: "relative" }}>
-            <Search size={18} style={{ position: "absolute", left: "1rem", top: "50%", transform: "translateY(-50%)" }} />
-            <input
-              placeholder="Search by name or phone..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-            />
-          </div>
-          <CustomDropdown options={roles} value={filterRole} onChange={setFilterRole} placeholder="All Roles" />
-          <CustomDropdown options={venues} value={filterVenue} onChange={setFilterVenue} placeholder="All Home Bases" />
-          <CustomDropdown
-            options={[
-              { id: "available", name: "Available" },
-              { id: "off", name: "Off" },
-              { id: "leave", name: "Leave" }
-            ]}
-            value={filterStatus}
-            onChange={setFilterStatus}
-            placeholder="All Statuses"
-          />
-        </div>
-      </div>
-
       {/* ===== TABLE ===== */}
-      <div className={styles.tableContainer}>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Role</th>
-              <th>Camp</th>
-              <th>Phone</th>
-              <th>Status</th>
-              <th />
+      <table className={styles.table}>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Role</th>
+            <th>Camp</th>
+            <th>Phone</th>
+            <th>Status</th>
+            <th />
+          </tr>
+        </thead>
+        <tbody>
+          {filteredEmployees.map(emp => (
+            <tr key={emp.id}>
+              <td>{emp.full_name}</td>
+              <td>{getRoleName(emp.primary_role_id)}</td>
+              <td>{getVenueName(emp.home_base_venue_id)}</td>
+              <td>{extractPhone(emp.notes) || "-"}</td>
+              <td>{emp.availability_status}</td>
+              <td>
+                <button onClick={() => setSelectedEmployee(emp)}>View</button>
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            {filteredEmployees.map(emp => (
-              <tr key={emp.id}>
-                <td>{emp.full_name}</td>
-                <td>{getRoleName(emp.primary_role_id)}</td>
-                <td>{getVenueName(emp.home_base_venue_id)}</td>
-                <td>{extractPhone(emp.notes) || "-"}</td>
-                <td>{emp.availability_status}</td>
-                <td>
-                  <button onClick={() => setSelectedEmployee(emp)}>View</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+          ))}
+        </tbody>
+      </table>
 
-        {filteredEmployees.length === 0 && (
-          <div style={{ padding: "2rem", textAlign: "center" }}>
-            No employees found.
+      {/* ===== VIEW PANEL ===== */}
+      {selectedEmployee && (
+        <>
+          <div className={styles.overlay} onClick={() => setSelectedEmployee(null)} />
+          <div className={styles.profileSlideOut}>
+            <button className={styles.closeBtn} onClick={() => setSelectedEmployee(null)}>
+              <X size={18} />
+            </button>
+
+            {/* ROLE BADGE */}
+            <span
+              style={{
+                alignSelf: "flex-start",
+                padding: "4px 10px",
+                borderRadius: "20px",
+                fontSize: "0.75rem",
+                fontWeight: 700,
+                marginBottom: "1rem",
+                background:
+                  selectedEmployee.employee_role === "admin"
+                    ? "#fee2e2"
+                    : selectedEmployee.employee_role === "manager"
+                    ? "#e0f2fe"
+                    : "#f1f5f9",
+                color:
+                  selectedEmployee.employee_role === "admin"
+                    ? "#991b1b"
+                    : selectedEmployee.employee_role === "manager"
+                    ? "#0369a1"
+                    : "#475569"
+              }}
+            >
+              {selectedEmployee.employee_role.toUpperCase()}
+            </span>
+
+            <AdminEmployeeCard
+              employee={{
+                id: selectedEmployee.id,
+                name: selectedEmployee.full_name,
+                role: getRoleName(selectedEmployee.primary_role_id),
+                phone: extractPhone(selectedEmployee.notes) || "",
+                status: selectedEmployee.availability_status
+              }}
+            />
+
+            {/* ACTION BUTTONS */}
+            <div style={{ display: "flex", gap: "1rem", marginTop: "2rem" }}>
+              <button onClick={() => setSelectedEmployee(null)}>
+                <ArrowLeft size={16} /> Back
+              </button>
+              <button
+                style={{ color: "red" }}
+                onClick={() => deleteEmployee(selectedEmployee.id)}
+              >
+                <Trash2 size={16} /> Delete
+              </button>
+            </div>
           </div>
-        )}
-      </div>
+        </>
+      )}
 
-      {/* ===== MODALS ===== */}
-      <AdminImportModal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} onSuccess={fetchData} />
-      <EmployeeModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onSuccess={fetchData} venues={venues} roles={roles} />
+      <AdminImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onSuccess={fetchData}
+      />
+
+      <EmployeeModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSuccess={fetchData}
+        venues={venues}
+        roles={roles}
+      />
     </div>
   );
 }

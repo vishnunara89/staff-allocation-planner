@@ -31,6 +31,7 @@ export type CreateVenueDTO = Omit<Venue, 'id'>;
 export type CreateStaffingRuleDTO = Omit<StaffingRule, 'id'>;
 
 export interface StaffMember {
+    employee_role: string;
     id: number;
     full_name: string;
     primary_role_id: number;

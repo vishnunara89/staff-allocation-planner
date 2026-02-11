@@ -309,7 +309,7 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
     return (
         <div className={styles.container}>
             {/* Breadcrumb with venue name */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1rem', marginBottom: '1.5rem' }}>
                 <Link href="/admin/venues" style={{ color: '#64748b', textDecoration: 'none', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                     <ArrowLeft size={16} /> Venues / Camps
                 </Link>
@@ -326,7 +326,7 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                         {!editingVenue ? (
                             <div style={{ flex: 1 }}>
                                 <span className={styles.venueType} style={{ marginBottom: '0.5rem', display: 'inline-block' }}>{venue.type}</span>
-                                <h1 style={{ fontSize: '2.5rem', fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, margin: 0 }}>{venue.name}</h1>
+                                <h1 style={{ fontSize: '3rem', fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, margin: 0 }}>{venue.name}</h1>
                             </div>
                         ) : (
                             <div className={styles.editVenueForm} style={{ flex: 1 }}>
@@ -410,7 +410,7 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                     {activeTab === 'Overview' && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
                             {/* TOP SECTION: Info/Stats (Left) + Manager/Activity (Right) */}
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '2.5rem', alignItems: 'start' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '2.5rem', alignItems: 'start' }}>
                                 {/* LEFT COLUMN */}
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                                     <section>
@@ -425,9 +425,9 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                                             { label: 'Saved Tables', value: manningTables.length, icon: Database },
                                         ].map((stat, i) => (
                                             <div key={i} style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
-                                                <stat.icon size={20} style={{ color: 'var(--primary-color)', marginBottom: '0.75rem' }} />
-                                                <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{stat.value}</div>
-                                                <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#94a3b8' }}>{stat.label}</div>
+                                                <stat.icon size={24} style={{ color: 'var(--primary-color)', marginBottom: '0.75rem' }} />
+                                                <div style={{ fontSize: '1.75rem', fontWeight: 700 }}>{stat.value}</div>
+                                                <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#94a3b8' }}>{stat.label}</div>
                                             </div>
                                         ))}
                                     </div>
@@ -467,19 +467,19 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                                                                 <tr>
                                                                     <th className={styles.stickyCol} style={{ background: '#f8fafc' }}>
                                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                                                            <Briefcase size={14} /> ROLE
+                                                                            <Briefcase size={16} /> ROLE
                                                                         </div>
                                                                     </th>
-                                                                    <th className={styles.stickyCol} style={{ left: '160px', width: '150px', background: '#f8fafc' }}>
+                                                                    <th className={styles.stickyCol} style={{ left: '160px', width: '150px', background: '#f8fafc', fontSize: '0.8rem' }}>
                                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                                                            <Zap size={14} /> SKILL
+                                                                            <Zap size={16} /> SKILL
                                                                         </div>
                                                                     </th>
                                                                     {table.config.brackets?.map((bracket: string, i: number) => (
                                                                         <th key={i} style={{ minWidth: '80px' }}>
                                                                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-                                                                                <Users size={10} style={{ opacity: 0.6 }} />
-                                                                                <span style={{ fontSize: '0.75rem' }}>{bracket} PAX</span>
+                                                                                <Users size={14} style={{ opacity: 0.6 }} />
+                                                                                <span style={{ fontSize: '0.8rem' }}>{bracket} PAX</span>
                                                                             </div>
                                                                         </th>
                                                                     ))}
@@ -509,7 +509,7 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                                     {/* Assigned Managers */}
                                     <div style={{ background: 'white', border: '1.5px solid #f1f5f9', borderRadius: '16px', padding: '1.5rem' }}>
                                         <h4 className={styles.sectionTitle}>
-                                            <Shield size={18} /> Assigned Managers
+                                            <Shield size={20} /> Assigned Managers
                                         </h4>
                                         {assignedManagers.length === 0 ? (
                                             <p style={{ fontSize: '0.85rem', color: '#94a3b8', fontStyle: 'italic', textAlign: 'center', padding: '1rem' }}>
@@ -522,8 +522,8 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                                                         {mgr.name?.charAt(0)?.toUpperCase() || 'M'}
                                                     </div>
                                                     <div className={styles.managerInfo}>
-                                                        <div className={styles.managerName}>{mgr.name}</div>
-                                                        <div className={styles.managerPhone}>{mgr.phone || 'No phone'}</div>
+                                                        <div className={styles.managerName} style={{ fontSize: '1.1rem' }}>{mgr.name}</div>
+                                                        <div className={styles.managerPhone} style={{ fontSize: '0.9rem' }}>{mgr.phone || 'No phone'}</div>
                                                     </div>
                                                     <div className={styles.managerActions}>
                                                         {mgr.phone && (
@@ -557,7 +557,7 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                                     {/* Activity Log */}
                                     <div style={{ background: 'white', border: '1.5px solid #f1f5f9', borderRadius: '16px', padding: '1.5rem' }}>
                                         <h4 className={styles.sectionTitle}>
-                                            <Clock size={18} /> Recent Activity
+                                            <Clock size={20} /> Recent Activity
                                         </h4>
                                         {activityLog.length === 0 ? (
                                             <div className={styles.emptyActivity}>
@@ -613,22 +613,22 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                                 alignItems: "flex-end"
                             }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1, minWidth: '280px' }}>
-                                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                        <Users size={14} style={{ color: 'var(--primary-color)' }} /> Quick Add Role
+                                    <label style={{ fontSize: '0.85rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <Users size={18} style={{ color: 'var(--primary-color)' }} /> Quick Add Role
                                     </label>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', position: 'relative' }}>
                                         <div style={{ position: 'relative', flex: 1 }}>
-                                            <Shield size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--primary-color)' }} />
+                                            <Shield size={22} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--primary-color)' }} />
                                             <input
                                                 value={newRole}
                                                 onChange={(e) => setNewRole(e.target.value)}
                                                 placeholder="Enter role name..."
                                                 style={{
-                                                    padding: "12px 12px 12px 40px",
+                                                    padding: "12px 12px 12px 48px",
                                                     borderRadius: '12px',
                                                     border: '1.5px solid #e2e8f0',
                                                     width: '100%',
-                                                    fontSize: '0.9rem',
+                                                    fontSize: '1rem',
                                                     fontWeight: 600,
                                                     background: 'white',
                                                     transition: 'all 0.2s'
@@ -705,22 +705,22 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                                 </div>
 
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1, minWidth: '280px' }}>
-                                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                        <Database size={14} style={{ color: 'var(--primary-color)' }} /> Quick Add Skill
+                                    <label style={{ fontSize: '0.85rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <Database size={18} style={{ color: 'var(--primary-color)' }} /> Quick Add Skill
                                     </label>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', position: 'relative' }}>
                                         <div style={{ position: 'relative', flex: 1 }}>
-                                            <Zap size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--primary-color)' }} />
+                                            <Zap size={22} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--primary-color)' }} />
                                             <input
                                                 value={newSkill}
                                                 onChange={(e) => setNewSkill(e.target.value)}
                                                 placeholder="Enter skill name..."
                                                 style={{
-                                                    padding: "12px 12px 12px 40px",
+                                                    padding: "12px 12px 12px 48px",
                                                     borderRadius: '12px',
                                                     border: '1.5px solid #e2e8f0',
                                                     width: '100%',
-                                                    fontSize: '0.9rem',
+                                                    fontSize: '1rem',
                                                     fontWeight: 600,
                                                     background: 'white',
                                                     transition: 'all 0.2s'

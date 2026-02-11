@@ -54,7 +54,7 @@
     background: white;
     border-radius: 16px;
     border: 1px solid rgba(0, 0, 0, 0.05);
-    padding: 1.5rem;
+    padding: 2rem;
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
@@ -137,7 +137,7 @@
 }
 
 .venueTitle h3 {
-    font-size: 1.25rem;
+    font-size: 1.5rem;
     font-weight: 700;
     color: #1a1a1a;
     margin-bottom: 0.25rem;
@@ -169,7 +169,7 @@
 }
 
 .metricValue {
-    font-size: 1.1rem;
+    font-size: 1.25rem;
     font-weight: 700;
     color: #1a1a1a;
     display: flex;
@@ -178,7 +178,7 @@
 }
 
 .metricLabel {
-    font-size: 0.75rem;
+    font-size: 0.85rem;
     font-weight: 600;
     color: #94a3b8;
     text-transform: uppercase;
@@ -244,7 +244,7 @@
 
 .tab {
     padding: 1rem 0;
-    font-size: 0.95rem;
+    font-size: 1.05rem;
     font-weight: 600;
     color: #64748b;
     cursor: pointer;
@@ -432,7 +432,7 @@
 /* Role & Skill Dropdowns in Grid */
 .roleSelect,
 .skillSelect {
-    height: 40px;
+    height: 48px;
     padding: 0 2rem 0 0.75rem;
     border: 1.5px solid #E2E8F0;
     border-radius: 10px;
@@ -613,7 +613,8 @@
     background: #f8fafc;
     border-radius: 16px;
     border: 1px solid #f1f5f9;
-    width: 97%;
+    width: fit-content;
+    max-width: 100%;
 }
 
 .savedRulesTitle {
@@ -658,7 +659,7 @@
 
 .savedRulesTable th {
     text-align: left;
-    padding: 0.75rem 1rem;
+    padding: 0.5rem 0.75rem;
     font-weight: 700;
     color: #64748b;
     font-size: 0.8rem;
@@ -669,7 +670,7 @@
 }
 
 .savedRulesTable td {
-    padding: 0.75rem 1rem;
+    padding: 0.5rem 0.75rem;
     font-weight: 600;
     color: #1a1a1a;
     border-bottom: 1px solid #f1f5f9;
@@ -680,7 +681,7 @@
 .excelGridContainer {
     overflow-x: auto;
     overflow-y: auto;
-    max-height: 400px;
+    max-height: 350px;
     border-radius: 12px;
     border: 1.5px solid #E2E8F0;
     background: white;
@@ -750,8 +751,8 @@
 }
 
 .managerAvatar {
-    width: 40px;
-    height: 40px;
+    width: 48px;
+    height: 48px;
     border-radius: 12px;
     background: rgba(124, 76, 44, 0.1);
     color: var(--primary-color);
@@ -770,7 +771,7 @@
 
 .managerName {
     font-weight: 700;
-    font-size: 0.9rem;
+    font-size: 1.1rem;
     color: #1a1a1a;
 }
 
@@ -863,23 +864,23 @@
 }
 
 .activityHeader strong {
-    font-size: 0.85rem;
+    font-size: 0.95rem;
     color: #1a1a1a;
 }
 
 .activityTime {
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     color: #94a3b8;
 }
 
 .activityAction {
-    font-size: 0.8rem;
+    font-size: 0.9rem;
     color: #64748b;
     margin-bottom: 0.25rem;
 }
 
 .activityReason {
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     color: #94a3b8;
     background: #f8fafc;
     padding: 0.4rem 0.6rem;

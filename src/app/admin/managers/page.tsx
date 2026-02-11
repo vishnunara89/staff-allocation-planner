@@ -10,6 +10,7 @@ import {
   Phone,
   User,
   Search,
+  Trash2, // Added Trash2
 } from "lucide-react";
 import styles from "./managers.module.css";
 import { Venue } from "@/types";
@@ -115,6 +116,32 @@ export default function ManagersPage() {
   };
 
   /* =====================
+     DELETE MANAGER
+  ===================== */
+  const deleteManager = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this manager? This action cannot be undone.")) return;
+
+    try {
+      const res = await fetch("/api/managers", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ managerId: id }),
+      });
+
+      if (res.ok) {
+        // Optimistic UI update
+        setManagers((prev) => prev.filter((m) => m.id !== id));
+      } else {
+        const data = await res.json();
+        alert(data.error || "Failed to delete manager");
+      }
+    } catch (err) {
+      console.error("Delete failed:", err);
+      alert("An error occurred while deleting the manager.");
+    }
+  };
+
+  /* =====================
      ASSIGN VENUES (FIXED)
   ===================== */
   const saveAssignment = async () => {
@@ -187,7 +214,27 @@ export default function ManagersPage() {
                 m.username.toLowerCase().includes(searchQuery.toLowerCase())
             )
             .map((m) => (
-              <div key={m.id} className={styles.managerCard}>
+              <div key={m.id} className={styles.managerCard} style={{ position: "relative" }}>
+                {/* Delete Button */}
+                <button
+                  onClick={() => deleteManager(m.id)}
+                  style={{
+                    position: "absolute",
+                    top: "1.25rem",
+                    right: "1.25rem",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "#cbd5e1",
+                    transition: "color 0.2s",
+                  }}
+                  title="Delete Manager"
+                  onMouseOver={(e) => (e.currentTarget.style.color = "#ef4444")}
+                  onMouseOut={(e) => (e.currentTarget.style.color = "#cbd5e1")}
+                >
+                  <Trash2 size={18} />
+                </button>
+
                 <div className={styles.iconCircle}>
                   <Shield size={20} />
                 </div>
@@ -231,6 +278,65 @@ export default function ManagersPage() {
                 </button>
               </div>
             ))}
+        </div>
+      )}
+
+      {/* ADD MANAGER MODAL (RESTORED) */}
+      {showAdd && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modal}>
+            <h3>Add New Manager</h3>
+            <p>Create a login for a new manager.</p>
+
+            <input
+              className={styles.input} // Ensure this follows CSS or inline if needed
+              placeholder="Full Name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              style={!styles.input ? { width: '100%', padding: '0.75rem', marginBottom: '0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0' } : {}}
+            />
+            <input
+              className={styles.input}
+              placeholder="Username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              style={!styles.input ? { width: '100%', padding: '0.75rem', marginBottom: '0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0' } : {}}
+            />
+            <input
+              className={styles.input}
+              placeholder="Phone Number"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              style={!styles.input ? { width: '100%', padding: '0.75rem', marginBottom: '0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0' } : {}}
+            />
+            <input
+              className={styles.input}
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              style={!styles.input ? { width: '100%', padding: '0.75rem', marginBottom: '0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0' } : {}}
+            />
+
+            {error && <p className={styles.error}>{error}</p>}
+
+            <div className={styles.modalActions}>
+              <button
+                className={styles.secondaryBtn}
+                onClick={() => setShowAdd(false)}
+                disabled={submitting}
+              >
+                Cancel
+              </button>
+              <button
+                className={styles.primaryBtn}
+                onClick={addManager}
+                disabled={submitting}
+              >
+                {submitting ? "Creating..." : "Create Manager"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

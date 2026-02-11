@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, Plus, Loader2 } from "lucide-react";
+import { X, Plus, Loader2, Save } from "lucide-react";
 
 interface VenueModalProps {
     isOpen: boolean;
@@ -103,17 +103,41 @@ export default function VenueModal({ isOpen, onClose, onSuccess }: VenueModalPro
                             type="button"
                             onClick={onClose}
                             className="secondary"
-                            style={{ height: '48px', padding: '0 2rem' }}
+                            style={{
+                                height: '48px',
+                                padding: '0 2rem',
+                                background: '#f1f5f9',
+                                color: '#364a67ff',
+                                borderRadius: '12px',
+                                border: 'none',
+                                cursor: 'pointer',
+                                fontWeight: 600,
+                                fontSize: '0.9rem'
+                            }}
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            style={{ height: '48px', padding: '0 2rem' }}
+                            style={{
+                                height: '48px',
+                                padding: '0 2rem',
+                                background: 'var(--primary-color)',
+                                color: 'white',
+                                borderRadius: '12px',
+                                border: 'none',
+                                cursor: 'pointer',
+                                fontWeight: 600,
+                                fontSize: '0.9rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem'
+                            }}
                         >
-                            {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <Plus size={18} />}
-                            Create Venue
+                            {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                            {isSubmitting ? "Saving..." : "Save Venue"}
+                            save
                         </button>
                     </div>
                 </form>

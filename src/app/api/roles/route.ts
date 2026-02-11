@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import db from "@/lib/db";
-import { isAdmin } from "@/lib/auth-utils";
+import { isAdmin, canManageDefinitions } from "@/lib/auth-utils";
 import type { Role } from "@/types";
 
 /* =========================
@@ -30,10 +30,10 @@ export async function GET() {
 ========================= */
 export async function POST(req: Request) {
   try {
-    // 🔐 Admin check
-    if (!isAdmin()) {
+    // 🔐 Admin & Manager check
+    if (!canManageDefinitions()) {
       return NextResponse.json(
-        { error: "Unauthorized: Admin access required" },
+        { error: "Unauthorized: Admin or Manager access required" },
         { status: 403 }
       );
     }
@@ -78,7 +78,7 @@ export async function POST(req: Request) {
 ========================= */
 export async function DELETE(req: Request) {
   try {
-    if (!isAdmin()) {
+    if (!canManageDefinitions()) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 

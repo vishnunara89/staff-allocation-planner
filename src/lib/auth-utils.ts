@@ -16,7 +16,13 @@ export function isAdmin(): boolean {
 }
 
 export function isManager(): boolean {
-    return getUserRole() === "manager";
+    const role = getUserRole();
+    return role === "manager" || role === "admin"; // Managers can do manager things, Admins can do everything
+}
+
+export function canManageDefinitions(): boolean {
+    const role = getUserRole();
+    return role === "admin" || role === "manager";
 }
 
 export function getUserId(): number | null {

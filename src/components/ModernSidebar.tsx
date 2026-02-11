@@ -21,7 +21,7 @@ import styles from "./modern-sidebar.module.css";
 const navItems = [
     { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
     { href: "/venues", label: "Venues", icon: MapPin },
-    { href: "/staff", label: "Staff Roster", icon: Users },
+    { href: "/staff", label: "Employees", icon: Users },
     { href: "/events", label: "Events", icon: Calendar },
     { href: "/plans", label: "Plans", icon: FileText },
 ];

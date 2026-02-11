@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import db from "@/lib/db";
-import { isAdmin } from "@/lib/auth-utils";
+import { isAdmin, canManageDefinitions } from "@/lib/auth-utils";
 
 // GET ALL SKILLS
 export async function GET() {
@@ -15,7 +15,7 @@ export async function GET() {
 // CREATE SKILL (ADMIN ONLY)
 export async function POST(req: Request) {
     try {
-        if (!isAdmin()) {
+        if (!canManageDefinitions()) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
         }
 
@@ -38,7 +38,7 @@ export async function POST(req: Request) {
 // DELETE SKILL (ADMIN ONLY)
 export async function DELETE(req: Request) {
     try {
-        if (!isAdmin()) {
+        if (!canManageDefinitions()) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
         }
 

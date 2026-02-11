@@ -34,3 +34,57 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Failed to create skill" }, { status: 500 });
     }
 }
+
+// DELETE SKILL (ADMIN ONLY)
+export async function DELETE(req: Request) {
+    try {
+        if (!isAdmin()) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+        }
+
+        const { searchParams } = new URL(req.url);
+        const id = searchParams.get("id");
+
+        if (!id) {
+            return NextResponse.json({ error: "Skill ID required" }, { status: 400 });
+        }
+
+        // 1. Get skill name
+        const skill = db.prepare("SELECT name FROM skills WHERE id = ?").get(id) as { name: string } | undefined;
+        if (!skill) {
+            return NextResponse.json({ error: "Skill not found" }, { status: 404 });
+        }
+
+        const skillName = skill.name;
+
+        // 2. Transactional cleanup
+        const deleteTransaction = db.transaction(() => {
+            // Remove from employees.special_skills (stored as JSON array of strings)
+            const employees = db.prepare("SELECT id, special_skills FROM employees").all() as { id: number, special_skills: string }[];
+
+            for (const emp of employees) {
+                let skills: string[] = [];
+                try {
+                    skills = JSON.parse(emp.special_skills || "[]");
+                } catch {
+                    skills = [];
+                }
+
+                if (skills.includes(skillName)) {
+                    const updated = skills.filter(s => s !== skillName);
+                    db.prepare("UPDATE employees SET special_skills = ? WHERE id = ?").run(JSON.stringify(updated), emp.id);
+                }
+            }
+
+            // 3. Delete the skill record
+            db.prepare("DELETE FROM skills WHERE id = ?").run(id);
+        });
+
+        deleteTransaction();
+
+        return NextResponse.json({ success: true, message: "Skill deleted and staff profiles updated" });
+    } catch (error) {
+        console.error("Database error (skills DELETE):", error);
+        return NextResponse.json({ error: "Failed to delete skill: " + (error as Error).message }, { status: 500 });
+    }
+}

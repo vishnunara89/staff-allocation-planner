@@ -137,7 +137,6 @@ export default function VenueModal({ isOpen, onClose, onSuccess }: VenueModalPro
                         >
                             {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
                             {isSubmitting ? "Saving..." : "Save Venue"}
-                            save
                         </button>
                     </div>
                 </form>

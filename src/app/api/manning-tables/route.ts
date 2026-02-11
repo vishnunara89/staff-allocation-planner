@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { getUserId, getUserRole, isAdmin } from '@/lib/auth-utils';
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
@@ -33,12 +34,13 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { venue_id, department, config } = body;
+        const { venue_id, department, config, changeReason } = body;
 
         if (!venue_id || !department || !config) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
         }
 
+        const userId = getUserId();
         const now = new Date().toISOString();
         const configJson = JSON.stringify(config);
 
@@ -52,6 +54,26 @@ export async function POST(request: Request) {
         `);
 
         stmt.run(venue_id, department, configJson, now);
+
+        // 📝 Record Activity Log
+        if (userId) {
+            const user = db.prepare("SELECT name FROM users WHERE id = ?").get(userId) as { name: string };
+            const venue = db.prepare("SELECT name FROM venues WHERE id = ?").get(venue_id) as { name: string };
+
+            if (user && venue) {
+                db.prepare(`
+                    INSERT INTO activity_log (user_id, user_name, venue_id, venue_name, action_type, description)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                `).run(
+                    userId,
+                    user.name,
+                    venue_id,
+                    venue.name,
+                    'STAFFING_UPDATE',
+                    changeReason || 'Updated staffing rules'
+                );
+            }
+        }
 
         return NextResponse.json({ success: true, venue_id, department });
     } catch (err: any) {

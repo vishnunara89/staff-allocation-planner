@@ -2,6 +2,14 @@
     display: flex;
     flex-direction: column;
     gap: 2rem;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
+}
+
+.container * {
+    box-sizing: border-box;
 }
 
 /* Shared Form Tokens for Venues */
@@ -234,6 +242,56 @@
     display: flex;
     flex-direction: column;
     gap: 2rem;
+    width: 100%;
+    overflow: hidden;
+}
+
+.venueIcon {
+    width: 64px;
+    height: 64px;
+    background: rgba(124, 76, 44, 0.1);
+    color: var(--primary-color);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.venueTitleContainer {
+    flex: 1;
+    min-width: 0;
+    /* Important for text truncation/wrapping */
+}
+
+.venueDetailTitle {
+    font-size: 3rem;
+    font-family: var(--font-cormorant), serif;
+    font-weight: 700;
+    margin: 0;
+    line-height: 1.1;
+    word-wrap: break-word;
+}
+
+@media (max-width: 768px) {
+    .detailHeader {
+        padding: 1.5rem;
+        gap: 1.5rem;
+    }
+
+    .venueIcon {
+        width: 48px;
+        height: 48px;
+    }
+
+    .venueIcon svg {
+        width: 24px;
+        height: 24px;
+    }
+
+    .venueDetailTitle {
+        font-size: 2rem;
+    }
 }
 
 .tabs {
@@ -266,10 +324,9 @@
     bottom: -1px;
     left: 0;
     right: 0;
-    background: #f8fafc;
+    height: 3px;
+    background: var(--primary-color);
     z-index: 10;
-    text-align: left !important;
-    min-width: 180px;
 }
 
 .excelGrid tbody .stickyCol {
@@ -410,6 +467,45 @@
 .gridActions {
     display: flex;
     justify-content: flex-start;
+}
+
+/* Responsive Grid for Overview */
+.overviewGrid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 400px;
+    gap: 2.5rem;
+    align-items: start;
+    width: 100%;
+}
+
+.statsGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+}
+
+@media (max-width: 1400px) {
+    .overviewGrid {
+        grid-template-columns: minmax(0, 1fr) 350px;
+        gap: 2rem;
+    }
+}
+
+@media (max-width: 1200px) {
+    .overviewGrid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 2rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .statsGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .overviewGrid {
+        gap: 1.5rem;
+    }
 }
 
 @keyframes fadeIn {
@@ -613,8 +709,9 @@
     background: #f8fafc;
     border-radius: 16px;
     border: 1px solid #f1f5f9;
-    width: fit-content;
+    width: 100%;
     max-width: 100%;
+    overflow: hidden;
 }
 
 .savedRulesTitle {
@@ -734,6 +831,19 @@
 .editVenueForm select:focus {
     border-color: var(--primary-color);
     box-shadow: var(--input-focus-shadow);
+}
+
+@media (max-width: 768px) {
+    .editVenueForm {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .editVenueForm input,
+    .editVenueForm select {
+        width: 100% !important;
+        max-width: none !important;
+    }
 }
 
 /* Assigned Managers */
@@ -886,4 +996,159 @@
     padding: 0.4rem 0.6rem;
     border-radius: 6px;
     border-left: 3px solid var(--primary-color);
+}
+
+/* Reason for Change Modal (Shared from Manager view) */
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.2s ease;
+}
+
+.modal {
+    background: white;
+    border-radius: 20px;
+    padding: 2.5rem;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    animation: scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes scaleUp {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.modal h3 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+.modal p {
+    color: #64748b;
+    margin-bottom: 1.5rem;
+    font-size: 0.95rem;
+}
+
+.modalTextarea {
+    width: 100%;
+    min-height: 100px;
+    padding: 1rem;
+    border: 1.5px solid #E2E8F0;
+    border-radius: 12px;
+    background: #F8FAFC;
+    font-size: 0.95rem;
+    margin-bottom: 2rem;
+    resize: vertical;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.modalTextarea:focus {
+    border-color: var(--primary-color);
+    background: white;
+    box-shadow: 0 0 0 4px rgba(124, 76, 44, 0.05);
+}
+
+.modalActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+}
+
+.secondaryBtn {
+    background: white;
+    border: 1.5px solid #E2E8F0;
+    padding: 0.75rem 1.5rem;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.primaryBtnLarge {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.primaryBtnLarge:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Manning Editor Quick Add Responsiveness */
+.quickAddContainer {
+    display: flex;
+    gap: 2.5rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    padding: 1.5rem;
+    background: rgba(248, 250, 252, 0.5);
+    border-radius: 20px;
+    border: 1px solid #f1f5f9;
+    align-items: flex-end;
+}
+
+@media (max-width: 768px) {
+    .quickAddContainer {
+        gap: 1.5rem;
+        padding: 1rem;
+    }
+
+    .quickAddContainer>div {
+        min-width: 100% !important;
+    }
+}
+
+/* Breadcrumb Responsiveness */
+.breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+/* Activity Item Header Responsiveness */
+@media (max-width: 480px) {
+    .activityHeader {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 2px;
+    }
 }

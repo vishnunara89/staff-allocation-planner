@@ -62,6 +62,8 @@ export default function VenueDetailPage({ params }: { params: { id: string } }) 
         'Team Lead', 'Training', 'VIP Service', 'Other'
     ];
 
+    const [activities, setActivities] = useState<any[]>([]);
+
     useEffect(() => {
         fetchVenueData();
     }, [params.id]);
@@ -69,10 +71,11 @@ export default function VenueDetailPage({ params }: { params: { id: string } }) 
     async function fetchVenueData() {
         setLoading(true);
         try {
-            const [venueRes, rolesRes, tablesRes] = await Promise.all([
+            const [venueRes, rolesRes, tablesRes, activityRes] = await Promise.all([
                 fetch(`/api/venues/${params.id}`),
                 fetch(`/api/roles`),
-                fetch(`/api/manning-tables?venue_id=${params.id}`)
+                fetch(`/api/manning-tables?venue_id=${params.id}`),
+                fetch(`/api/activity?venue_id=${params.id}`)
             ]);
 
             if (venueRes.ok) {
@@ -95,6 +98,10 @@ export default function VenueDetailPage({ params }: { params: { id: string } }) 
                     setManningConfig(tablesData[0].config);
                 }
             }
+
+            if (activityRes.ok) {
+                setActivities(await activityRes.json());
+            }
         } catch (err) {
             console.error("Failed to load venue data:", err);
         } finally {
@@ -116,7 +123,8 @@ export default function VenueDetailPage({ params }: { params: { id: string } }) 
                 body: JSON.stringify({
                     venue_id: Number(params.id),
                     department: 'all',
-                    config: manningConfig
+                    config: manningConfig,
+                    changeReason: changeReason // ✅ Sending the reason
                 })
             });
             if (res.ok) {
@@ -256,6 +264,37 @@ export default function VenueDetailPage({ params }: { params: { id: string } }) 
                             </div>
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                                <div style={{ background: 'white', border: '1.5px solid #f1f5f9', borderRadius: '16px', padding: '1.5rem' }}>
+                                    <h4 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <Clock size={18} style={{ color: 'var(--primary-color)' }} /> Recent Updates
+                                    </h4>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                        {activities.length === 0 ? (
+                                            <p style={{ fontSize: '0.85rem', color: '#94a3b8', fontStyle: 'italic', textAlign: 'center', padding: '1rem' }}>
+                                                No recent updates found.
+                                            </p>
+                                        ) : (
+                                            activities.slice(0, 5).map((log, idx) => (
+                                                <div key={idx} style={{
+                                                    paddingBottom: '1rem',
+                                                    borderBottom: idx === Math.min(activities.length, 5) - 1 ? 'none' : '1px solid #f1f5f9',
+                                                    fontSize: '0.85rem'
+                                                }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                                                        <span style={{ fontWeight: 700, color: '#1a1a1a' }}>{log.user_name}</span>
+                                                        <span style={{ color: '#94a3b8', fontSize: '0.7rem' }}>
+                                                            {new Date(log.created_at).toLocaleDateString()}
+                                                        </span>
+                                                    </div>
+                                                    <p style={{ color: '#64748b', margin: 0, fontStyle: 'italic', lineHeight: 1.4 }}>
+                                                        "{log.description}"
+                                                    </p>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
+
                                 <div style={{ background: 'white', border: '1.5px solid #f1f5f9', borderRadius: '16px', padding: '1.5rem' }}>
                                     <h4 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                         <Shield size={18} /> Support

@@ -34,29 +34,7 @@ interface VenueDetailProps {
 
 type TabType = 'Overview' | 'Staffing Rules';
 
-const MOCK_ACTIVITY = [
-    {
-        manager_name: "John Smith",
-        action: "Updated staffing rule",
-        details: "Changed Waiter count from 2 to 4 for 50-100 PAX bracket",
-        reason: "Expectation of high weekend footfall",
-        timestamp: "10 Feb, 14:30"
-    },
-    {
-        manager_name: "Sarah Chen",
-        action: "Venue Detail Update",
-        details: "Modified Venue Type from 'other' to 'restaurant'",
-        reason: "Re-classification for reporting",
-        timestamp: "09 Feb, 11:20"
-    },
-    {
-        manager_name: "Emma Wilson",
-        action: "Staffing Table Deletion",
-        details: "Removed 'Outdoor Bar' staffing rules",
-        reason: "Venue area closed for seasonal maintenance",
-        timestamp: "08 Feb, 16:45"
-    }
-];
+
 
 export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
     const [activeTab, setActiveTab] = useState<TabType>('Overview');
@@ -100,6 +78,10 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
     const [manningConfig, setManningConfig] = useState<any>({ brackets: DEFAULT_BRACKETS, rows: [] });
     const [savingManning, setSavingManning] = useState(false);
     const [manningFeedback, setManningFeedback] = useState('');
+
+    // Reason for change state
+    const [showReasonModal, setShowReasonModal] = useState(false);
+    const [changeReason, setChangeReason] = useState("");
 
     useEffect(() => {
         async function fetchVenueData() {
@@ -150,17 +132,15 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                     console.error('Failed to fetch managers:', error);
                 }
 
-                // Try to fetch activity log (API doesn't exist yet - using MOCK for UX)
+                // Fetch real activity log
                 try {
                     const activityRes = await fetch(`/api/activity?venue_id=${params.id}`);
                     if (activityRes.ok) {
                         const activityData = await activityRes.json();
-                        setActivityLog(Array.isArray(activityData) && activityData.length > 0 ? activityData : MOCK_ACTIVITY);
-                    } else {
-                        setActivityLog(MOCK_ACTIVITY);
+                        setActivityLog(Array.isArray(activityData) ? activityData : []);
                     }
-                } catch {
-                    setActivityLog(MOCK_ACTIVITY);
+                } catch (error) {
+                    console.error('Failed to fetch activity log:', error);
                 }
             } catch (error) {
                 console.error("Failed to fetch venue details:", error);
@@ -222,6 +202,42 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
         } catch (e) { console.error(e); }
     };
 
+    const handleFinalSave = async () => {
+        setSavingManning(true);
+        setManningFeedback('');
+        try {
+            const res = await fetch('/api/manning-tables', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    venue_id: Number(params.id),
+                    department: 'all',
+                    config: manningConfig,
+                    changeReason: changeReason || "Updated staffing rules (Admin)"
+                })
+            });
+            if (res.ok) {
+                setManningFeedback('Staffing rules updated!');
+                setShowReasonModal(false);
+                setChangeReason("");
+                setTimeout(() => setManningFeedback(''), 3000);
+
+                // Refresh activity log
+                const activityRes = await fetch(`/api/activity?venue_id=${params.id}`);
+                if (activityRes.ok) {
+                    const activityData = await activityRes.json();
+                    setActivityLog(Array.isArray(activityData) ? activityData : []);
+                }
+            } else {
+                setManningFeedback('Failed to save');
+            }
+        } catch (err) {
+            setManningFeedback('Failed to sync');
+        } finally {
+            setSavingManning(false);
+        }
+    };
+
     if (loading) {
         return (
             <div style={{ padding: '8rem', textAlign: 'center', color: '#64748b' }}>
@@ -243,7 +259,7 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
     return (
         <div className={styles.container}>
             {/* Breadcrumb with venue name */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1rem', marginBottom: '1.5rem' }}>
+            <div className={styles.breadcrumb}>
                 <Link href="/admin/venues" style={{ color: '#64748b', textDecoration: 'none', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                     <ArrowLeft size={16} /> Venues / Camps
                 </Link>
@@ -252,15 +268,15 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
             </div>
 
             <div className={styles.detailHeader}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', flex: 1 }}>
-                        <div style={{ width: '64px', height: '64px', background: 'rgba(124, 76, 44, 0.1)', color: 'var(--primary-color)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+                    <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', flex: '1 1 300px' }}>
+                        <div className={styles.venueIcon}>
                             <MapPin size={32} />
                         </div>
                         {!editingVenue ? (
-                            <div style={{ flex: 1 }}>
+                            <div className={styles.venueTitleContainer}>
                                 <span className={styles.venueType} style={{ marginBottom: '0.5rem', display: 'inline-block' }}>{venue.type}</span>
-                                <h1 style={{ fontSize: '3rem', fontFamily: 'var(--font-cormorant), serif', fontWeight: 700, margin: 0 }}>{venue.name}</h1>
+                                <h1 className={styles.venueDetailTitle}>{venue.name}</h1>
                             </div>
                         ) : (
                             <div className={styles.editVenueForm} style={{ flex: 1 }}>
@@ -342,7 +358,7 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                     {activeTab === 'Overview' && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
                             {/* TOP SECTION: Info/Stats (Left) + Manager/Activity (Right) */}
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '2.5rem', alignItems: 'start' }}>
+                            <div className={styles.overviewGrid}>
                                 {/* LEFT COLUMN */}
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                                     <section>
@@ -350,7 +366,7 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                                         <p style={{ color: '#64748b', lineHeight: 1.6 }}>{venue.notes || "No operational notes provided for this venue."}</p>
                                     </section>
 
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }}>
+                                    <div className={styles.statsGrid}>
                                         {[
                                             { label: 'Rules Active', value: manningConfig.rows.length > 0 ? 'Yes' : 'No', icon: Settings },
                                             { label: 'Upcoming Events', value: '—', icon: Calendar },
@@ -506,17 +522,22 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                                                         <div className={styles.activityDot} />
                                                         <div className={styles.activityContent}>
                                                             <div className={styles.activityHeader}>
-                                                                <strong>{entry.manager_name}</strong>
-                                                                <span className={styles.activityTime}>{entry.timestamp}</span>
+                                                                <strong>{entry.user_name}</strong>
+                                                                <span className={styles.activityTime}>
+                                                                    {new Date(entry.created_at).toLocaleString([], {
+                                                                        day: 'numeric',
+                                                                        month: 'short',
+                                                                        hour: '2-digit',
+                                                                        minute: '2-digit'
+                                                                    })}
+                                                                </span>
                                                             </div>
                                                             <div className={styles.activityAction}>
-                                                                {entry.action} — {entry.details}
+                                                                {entry.action_type === 'STAFFING_UPDATE' ? 'Staffing Update' : entry.action_type}
                                                             </div>
-                                                            {entry.reason && (
-                                                                <div className={styles.activityReason}>
-                                                                    <em>Reason:</em> "{entry.reason}"
-                                                                </div>
-                                                            )}
+                                                            <div className={styles.activityReason}>
+                                                                <em>Reason:</em> "{entry.description}"
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 ))}
@@ -533,17 +554,7 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                     {activeTab === 'Staffing Rules' && (
                         <div className={styles.manningEditor}>
                             {/* NEW: Add Role/Skill Inputs */}
-                            <div style={{
-                                display: "flex",
-                                gap: "2.5rem",
-                                marginBottom: "2rem",
-                                flexWrap: "wrap",
-                                padding: "1.5rem",
-                                background: "rgba(248, 250, 252, 0.5)",
-                                borderRadius: "20px",
-                                border: "1px solid #f1f5f9",
-                                alignItems: "flex-end"
-                            }}>
+                            <div className={styles.quickAddContainer}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1, minWidth: '280px' }}>
                                     <label style={{ fontSize: '0.85rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                         <Users size={18} style={{ color: 'var(--primary-color)' }} /> Quick Add Role
@@ -754,29 +765,7 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                                     </span>
                                 )}
                                 <button
-                                    onClick={async () => {
-                                        setSavingManning(true);
-                                        setManningFeedback('');
-                                        try {
-                                            const res = await fetch('/api/manning-tables', {
-                                                method: 'POST',
-                                                headers: { 'Content-Type': 'application/json' },
-                                                body: JSON.stringify({
-                                                    venue_id: Number(params.id),
-                                                    department: 'all',
-                                                    config: manningConfig
-                                                })
-                                            });
-                                            if (res.ok) {
-                                                setManningFeedback('Staffing rules updated!');
-                                                setTimeout(() => setManningFeedback(''), 3000);
-                                            }
-                                        } catch (err) {
-                                            setManningFeedback('Failed to sync');
-                                        } finally {
-                                            setSavingManning(false);
-                                        }
-                                    }}
+                                    onClick={() => setShowReasonModal(true)}
                                     style={{
                                         background: 'var(--primary-color)',
                                         color: 'white',
@@ -999,6 +988,43 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                     )}
                 </div>
             </div>
+            {/* Reason for Change Modal */}
+            {showReasonModal && (
+                <div className={styles.modalOverlay}>
+                    <div className={styles.modal}>
+                        <h3>Reason for Change</h3>
+                        <p>Please provide a brief reason for updating the staffing rules. This will be logged for audit purposes.</p>
+
+                        <textarea
+                            className={styles.modalTextarea}
+                            placeholder="e.g., Seasonal adjustment, expected event, etc."
+                            value={changeReason}
+                            onChange={(e) => setChangeReason(e.target.value)}
+                            autoFocus
+                        />
+
+                        <div className={styles.modalActions}>
+                            <button
+                                className={styles.secondaryBtn}
+                                onClick={() => {
+                                    setShowReasonModal(false);
+                                    setChangeReason("");
+                                }}
+                                disabled={savingManning}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className={styles.primaryBtnLarge}
+                                onClick={handleFinalSave}
+                                disabled={savingManning || !changeReason.trim()}
+                            >
+                                {savingManning ? "Saving..." : "Save Changes"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

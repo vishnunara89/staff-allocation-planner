@@ -92,6 +92,7 @@ if (!globalForDb.sqlite) {
         FOREIGN KEY (venue_id) REFERENCES venues(id) ON DELETE CASCADE
       )
     `).run();
+    addColumnIfMissing(database, "manager_venues", "venue_name", "TEXT");
 
     /* =========================
        EMPLOYEES
@@ -144,6 +145,22 @@ if (!globalForDb.sqlite) {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (venue_id) REFERENCES venues(id) ON DELETE CASCADE,
         FOREIGN KEY (role_id) REFERENCES roles(id)
+      )
+    `).run();
+
+    /* =========================
+       ACTIVITY LOG (NEW)
+    ========================= */
+    database.prepare(`
+      CREATE TABLE IF NOT EXISTS activity_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        user_name TEXT,
+        venue_id INTEGER,
+        venue_name TEXT,
+        action_type TEXT,
+        description TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `).run();
 

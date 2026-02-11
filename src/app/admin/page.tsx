@@ -27,38 +27,45 @@ export default function AdminDashboard() {
     });
     const [loading, setLoading] = useState(true);
 
+    const [activities, setActivities] = useState<any[]>([]);
+
     useEffect(() => {
         async function fetchDashboardData() {
             try {
                 const today = new Date().toISOString().split('T')[0];
 
                 // Fetch data in parallel
-                const [venuesRes, staffRes, eventsRes, managersRes] = await Promise.all([
+                const [venuesRes, staffRes, eventsRes, managersRes, activityRes] = await Promise.all([
                     fetch('/api/venues'),
                     fetch('/api/staff'),
                     fetch(`/api/events?from_date=${today}`),
-                    fetch('/api/managers')
+                    fetch('/api/managers'),
+                    fetch('/api/activity')
                 ]);
 
-                const [venuesData, staffData, eventsData, managersData] = await Promise.all([
+                const [venuesData, staffData, eventsData, managersData, activityData] = await Promise.all([
                     venuesRes.json().catch(() => ({ value: [] })),
                     staffRes.json().catch(() => ({ value: [] })),
                     eventsRes.json().catch(() => ({ value: [] })),
-                    managersRes.json().catch(() => ({ value: [] }))
+                    managersRes.json().catch(() => ({ value: [] })),
+                    activityRes.json().catch(() => ({ value: [] }))
                 ]);
 
                 const venues = Array.isArray(venuesData) ? venuesData : [];
                 const staff = Array.isArray(staffData) ? staffData : [];
                 const events = Array.isArray(eventsData) ? eventsData : [];
                 const managers = Array.isArray(managersData) ? managersData : [];
+                const activity = Array.isArray(activityData) ? activityData : [];
 
                 setCounts({
                     venues: venues.length,
                     staff: staff.length,
                     events: events.length,
-                    gaps: 0, // Placeholder for gaps
+                    gaps: 0,
                     managers: managers.length
                 });
+
+                setActivities(activity);
             } catch (error) {
                 console.error("Failed to fetch dashboard data:", error);
             } finally {
@@ -89,7 +96,7 @@ export default function AdminDashboard() {
             <section className={styles.metricsGrid}>
                 {metrics.map((metric, i) => (
                     <div key={i} className={styles.metricCard}>
-                        <div className={styles.metricHeader}>
+                        <div className={metric.label === "Staffing Gaps" ? styles.metricHeaderGaps : styles.metricHeader}>
                             <div
                                 className={styles.metricIcon}
                                 style={{ backgroundColor: metric.bg, color: metric.color }}
@@ -131,12 +138,37 @@ export default function AdminDashboard() {
                 <section className={styles.activityFeed}>
                     <h2 className={styles.sectionTitle}>Recent Activity</h2>
                     <div className={styles.activityList}>
-                        <div style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>
-                            <Clock size={32} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
-                            <p style={{ fontSize: '0.9rem', fontStyle: 'italic' }}>
-                                Activity logging will be enabled in the next update.
-                            </p>
-                        </div>
+                        {activities.length === 0 ? (
+                            <div style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>
+                                <Clock size={32} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
+                                <p style={{ fontSize: '0.9rem', fontStyle: 'italic' }}>
+                                    No recent activity found.
+                                </p>
+                            </div>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                {activities.slice(0, 5).map((log, idx) => (
+                                    <div key={idx} style={{
+                                        padding: '1rem',
+                                        background: '#f8fafc',
+                                        borderRadius: '12px',
+                                        border: '1px solid #f1f5f9',
+                                        fontSize: '0.85rem'
+                                    }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                                            <span style={{ fontWeight: 700, color: '#1a1a1a' }}>{log.user_name}</span>
+                                            <span style={{ color: '#94a3b8', fontSize: '0.75rem' }}>{new Date(log.created_at).toLocaleString()}</span>
+                                        </div>
+                                        <div style={{ color: 'var(--primary-color)', fontWeight: 600, marginBottom: '0.25rem' }}>
+                                            {log.venue_name}
+                                        </div>
+                                        <p style={{ color: '#64748b', margin: 0, fontStyle: 'italic' }}>
+                                            "{log.description}"
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                     <Link href="/admin/activity" className={styles.viewAllBtn} style={{ fontSize: '0.85rem', color: '#7C4C2C', fontWeight: 600, textAlign: 'center', marginTop: '1rem', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                         View All Activity <ArrowRight size={14} />

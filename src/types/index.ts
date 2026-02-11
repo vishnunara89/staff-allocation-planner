@@ -109,3 +109,58 @@ export interface Plan {
     status: 'draft' | 'finalized';
     created_at?: string;
 }
+
+// ============ Plan Generation Module Types ============
+
+export interface GeneratedPlan {
+    id: number;
+    event_id: number;
+    generated_by: number;
+    generated_at: string;
+    status: 'draft' | 'active' | 'completed' | 'archived';
+    version: number;
+    regeneration_reason?: string;
+    plan_data: string; // JSON string
+}
+
+export interface Freelancer {
+    id: number;
+    name: string;
+    phone: string;
+    role?: string;
+    skills?: string;
+    notes?: string;
+    created_at?: string;
+}
+
+export interface EmployeeAssignment {
+    id: number;
+    employee_id: number;
+    event_id: number;
+    plan_id?: number;
+    date: string;
+    start_time: string;
+    end_time: string;
+    hours_worked: number;
+    status: 'assigned' | 'confirmed' | 'unavailable' | 'completed';
+    created_at?: string;
+}
+
+export interface PlanActivityLog {
+    id: number;
+    plan_id: number;
+    event_id: number;
+    action: 'generated' | 'regenerated' | 'employee_confirmed' | 'employee_unavailable' | 'freelancer_added' | 'plan_saved' | 'plan_exported';
+    reason?: string;
+    performed_by: number;
+    performed_at: string;
+    changes?: string;
+}
+
+export interface EmployeeAvailability {
+    available: boolean;
+    hours_worked: number;
+    hours_remaining: number;
+    current_events: string[];
+    status: 'available' | 'limited' | 'unavailable';
+}

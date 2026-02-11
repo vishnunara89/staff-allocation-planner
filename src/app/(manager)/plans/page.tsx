@@ -17,6 +17,7 @@ export default function PlansPage() {
     const [roles, setRoles] = useState<Role[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentPlan, setCurrentPlan] = useState<Plan | null>(null);
+    const [currentEvent, setCurrentEvent] = useState<Event | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [existingPlans, setExistingPlans] = useState<Set<string>>(new Set());
 
@@ -237,6 +238,7 @@ export default function PlansPage() {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
+                        event_id: event.id,
                         date: event.date,
                         venue_id: event.venue_id,
                         assignments: requirements.flatMap(r => r.assignments).map(a => ({
@@ -252,6 +254,7 @@ export default function PlansPage() {
             }
 
             setCurrentPlan(newPlan);
+            setCurrentEvent(event);
 
             // 5. Update local state to reflect the new plan immediately
             const planKey = `${event.date}_${event.venue_id}`;
@@ -438,8 +441,13 @@ export default function PlansPage() {
             {view === 'generated' && currentPlan && (
                 <GeneratedPlanView
                     plan={currentPlan}
-                    onBack={() => setView('list')}
-                    onExport={() => alert('Exporting Plan PDF... (Coming Soon)')}
+                    onBack={() => { setView('list'); fetchData(); }}
+                    onExport={() => { }}
+                    eventName={currentEvent?.event_name || ''}
+                    eventPriority={currentEvent?.priority || 'normal'}
+                    eventStartTime={currentEvent?.start_time || ''}
+                    eventEndTime={currentEvent?.end_time || ''}
+                    onRefresh={fetchData}
                 />
             )}
 

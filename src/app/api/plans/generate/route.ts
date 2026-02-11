@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { calculateRequirements, allocateStaff } from '@/lib/engine';
 import { Event, Venue, StaffingRule, Role, StaffMember, ManningBracketRow } from '@/types';
+import { generatePlanForEvent } from '@/lib/plan-engine';
+import { getUserId } from '@/lib/auth-utils';
 
 function parseStaff(row: any): StaffMember {
     return {
@@ -15,10 +17,51 @@ function parseStaff(row: any): StaffMember {
 
 export async function POST(request: Request) {
     try {
-        const { date } = await request.json();
+        const body = await request.json();
+        const { date, event_id } = body;
 
+        // NEW: Event-centric generation using plan-engine
+        if (event_id) {
+            const userId = getUserId() || 1;
+            const event = db.prepare(`
+                SELECT e.*, v.name as venue_name FROM events e
+                LEFT JOIN venues v ON e.venue_id = v.id
+                WHERE e.id = ?
+            `).get(event_id) as Event | undefined;
+
+            if (!event) {
+                return NextResponse.json({ error: 'Event not found' }, { status: 404 });
+            }
+
+            try {
+                const result = generatePlanForEvent(db, event, userId);
+                return NextResponse.json({
+                    date: event.date,
+                    event_id: event.id,
+                    event,
+                    venue_name: result.venue_name,
+                    requirements: result.requirements,
+                    assignments: result.requirements.flatMap(r => r.assignments),
+                    shortages: result.shortages,
+                    total_staff_needed: result.total_staff_needed,
+                    internal_assigned: result.internal_assigned,
+                    freelancers_needed: result.freelancers_needed,
+                    logs: result.logs,
+                    message: result.requirements.length === 0
+                        ? 'No staffing rules found for this venue. Please configure manning tables first.'
+                        : ''
+                });
+            } catch (engineErr: any) {
+                console.error('[PlanGen] Engine error:', engineErr);
+                return NextResponse.json({
+                    error: engineErr.message || 'Failed to generate plan',
+                }, { status: 500 });
+            }
+        }
+
+        // EXISTING: Date-based generation (backward compatible)
         if (!date) {
-            return NextResponse.json({ error: 'Date is required' }, { status: 400 });
+            return NextResponse.json({ error: 'Date or event_id is required' }, { status: 400 });
         }
 
         // Debug logging setup

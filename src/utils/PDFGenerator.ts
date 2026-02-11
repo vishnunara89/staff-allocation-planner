@@ -138,28 +138,37 @@ export function generateStaffingPlanPDF(data: PDFData) {
         // Get full staff details
         const staffDetails = internalStaff.map(assignment => {
             const staff = allStaff.find(s => s.id === assignment.staff_id);
+            let phone = 'N/A';
+            if (staff?.phone) {
+                phone = staff.phone;
+            } else if (staff?.notes) {
+                const match = staff.notes.match(/Phone:\s*([+\d\s-]+)/i);
+                if (match) phone = match[1].trim();
+            }
             return {
                 name: assignment.staff_name,
                 role: assignment.role_name,
+                phone,
                 skills: staff ? getSkillsString(staff) : 'N/A',
                 languages: staff ? getLanguagesString(staff) : 'N/A',
-                contact: staff?.notes || 'N/A'
+                status: assignment.status === 'confirmed' ? '✓' : '○'
             };
         });
 
         autoTable(doc, {
             startY: yPos,
-            head: [['Name', 'Role', 'Skills', 'Languages', 'Contact']],
-            body: staffDetails.map(s => [s.name, s.role, s.skills, s.languages, s.contact]),
+            head: [['☐', 'Name', 'Role', 'Phone', 'Skills', 'Status']],
+            body: staffDetails.map(s => ['☐', s.name, s.role, s.phone, s.skills, s.status]),
             theme: 'striped',
             headStyles: { fillColor: [124, 76, 44], textColor: 255, fontStyle: 'bold', fontSize: 10 },
             styles: { fontSize: 9, cellPadding: 3 },
             columnStyles: {
-                0: { cellWidth: 40 },
+                0: { halign: 'center', cellWidth: 10 },
                 1: { cellWidth: 35 },
-                2: { cellWidth: 40 },
+                2: { cellWidth: 30 },
                 3: { cellWidth: 35 },
-                4: { cellWidth: 30 }
+                4: { cellWidth: 40 },
+                5: { halign: 'center', cellWidth: 15 }
             },
             margin: { left: margin, right: margin }
         });

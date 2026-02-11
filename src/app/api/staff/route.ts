@@ -47,7 +47,10 @@ export async function GET() {
     /* =========================
        ADMIN → ALL EMPLOYEES
     ========================= */
-    if (role === "admin") {
+    /* =========================
+       ADMIN OR MANAGER → ALL EMPLOYEES
+    ========================= */
+    if (role === "admin" || role === "manager") {
       rows = db.prepare(`
         SELECT 
           e.*,
@@ -58,25 +61,6 @@ export async function GET() {
         LEFT JOIN venues v ON e.home_base_venue_id = v.id
         ORDER BY e.full_name ASC
       `).all();
-    }
-
-    /* =========================
-       MANAGER → OWN VENUE STAFF
-    ========================= */
-    else if (role === "manager") {
-      rows = db.prepare(`
-        SELECT DISTINCT
-          e.*,
-          r.name AS primary_role_name,
-          v.name AS home_venue_name
-        FROM employees e
-        JOIN manager_venues mv 
-          ON mv.venue_id = e.home_base_venue_id
-        LEFT JOIN roles r ON e.primary_role_id = r.id
-        LEFT JOIN venues v ON e.home_base_venue_id = v.id
-        WHERE mv.manager_id = ?
-        ORDER BY e.full_name ASC
-      `).all(userId);
     }
 
     /* =========================

@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Plan, PlanAssignment, StaffMember, Role } from '@/types';
+import { Plan, PlanAssignment, StaffMember, Role, EmployeeAvailability, Freelancer } from '@/types';
 import styles from '../app/(manager)/plans/plans.module.css';
 import EmployeeCard from './EmployeeCard';
+import FreelancerInput from './FreelancerInput';
+import RegenerationModal from './RegenerationModal';
 import { generateStaffingPlanPDF } from '@/utils/PDFGenerator';
 import { exportPlanToCSV } from '@/lib/staff-utils';
 
@@ -9,6 +11,12 @@ interface GeneratedPlanViewProps {
     plan: Plan;
     onBack: () => void;
     onExport: () => void;
+    eventName?: string;
+    eventPriority?: string;
+    eventStartTime?: string;
+    eventEndTime?: string;
+    planId?: number;
+    onRefresh?: () => void;
 }
 
 interface RequirementRow {
@@ -19,7 +27,10 @@ interface RequirementRow {
     gap: number;
 }
 
-export default function GeneratedPlanView({ plan, onBack, onExport }: GeneratedPlanViewProps) {
+export default function GeneratedPlanView({
+    plan, onBack, onExport, eventName, eventPriority,
+    eventStartTime, eventEndTime, planId, onRefresh
+}: GeneratedPlanViewProps) {
     const planRef = useRef<HTMLDivElement>(null);
     const [allStaff, setAllStaff] = useState<StaffMember[]>([]);
     const [roles, setRoles] = useState<Role[]>([]);
@@ -27,15 +38,31 @@ export default function GeneratedPlanView({ plan, onBack, onExport }: GeneratedP
         plan.requirements.flatMap(r => r.assignments)
     );
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedRoleForAssignment, setSelectedRoleForAssignment] = useState<number | null>(null);
+    const [saving, setSaving] = useState(false);
+    const [saved, setSaved] = useState(false);
+    const [showRegenModal, setShowRegenModal] = useState(false);
+    const [regenerating, setRegenerating] = useState(false);
+    const [freelancerRole, setFreelancerRole] = useState<{ name: string; id: number } | null>(null);
+    const [staffPhones, setStaffPhones] = useState<Record<number, string>>({});
 
     useEffect(() => {
         Promise.all([
             fetch('/api/staff').then(res => res.json()),
             fetch('/api/roles').then(res => res.json())
         ]).then(([staffData, rolesData]) => {
-            setAllStaff(staffData);
-            setRoles(rolesData);
+            setAllStaff(Array.isArray(staffData) ? staffData : []);
+            setRoles(Array.isArray(rolesData) ? rolesData : []);
+
+            // Build phone lookup from staff data
+            const phones: Record<number, string> = {};
+            (Array.isArray(staffData) ? staffData : []).forEach((s: StaffMember) => {
+                if (s.phone) phones[s.id] = s.phone;
+                else if (s.notes) {
+                    const match = s.notes.match(/Phone:\s*([+\d\s-]+)/i);
+                    if (match) phones[s.id] = match[1].trim();
+                }
+            });
+            setStaffPhones(phones);
         });
     }, []);
 
@@ -58,17 +85,12 @@ export default function GeneratedPlanView({ plan, onBack, onExport }: GeneratedP
 
     // Priority sort: Home venue → Experience → Skills → Language
     const sortedAvailableStaff = [...availableStaff].sort((a, b) => {
-        // Home venue priority (comparing venue IDs, not names)
-        // Note: This is a simplified comparison - in production you'd match venue IDs
         const aIsHome = a.home_base_venue_id !== null;
         const bIsHome = b.home_base_venue_id !== null;
         if (aIsHome && !bIsHome) return -1;
         if (bIsHome && !aIsHome) return 1;
-
-        // Then by employment type (internal > freelance)
         if (a.employment_type === 'internal' && b.employment_type !== 'internal') return -1;
         if (b.employment_type === 'internal' && a.employment_type !== 'internal') return 1;
-
         return 0;
     });
 
@@ -80,7 +102,6 @@ export default function GeneratedPlanView({ plan, onBack, onExport }: GeneratedP
     const handleAssignStaff = (staff: StaffMember, roleId: number) => {
         const role = roles.find(r => r.id === roleId);
         if (!role) return;
-
         const newAssignment: PlanAssignment = {
             staff_id: staff.id,
             staff_name: staff.full_name,
@@ -90,46 +111,132 @@ export default function GeneratedPlanView({ plan, onBack, onExport }: GeneratedP
             is_freelance: false
         };
         setAssignments([...assignments, newAssignment]);
+        setSaved(false);
     };
 
     const handleRemoveAssignment = (staffId: number) => {
         setAssignments(assignments.filter(a => a.staff_id !== staffId));
+        setSaved(false);
     };
 
     const handleStatusToggle = (staffId: number, newStatus: 'confirmed' | 'pending' | 'declined') => {
         setAssignments(prev => prev.map(a =>
             a.staff_id === staffId ? { ...a, status: newStatus } : a
         ));
+        setSaved(false);
     };
 
     const handleExportCSV = () => {
-        try {
-            exportPlanToCSV(plan, assignments);
-        } catch (error) {
-            console.error('CSV Export failed:', error);
-            alert('Failed to export CSV. Please try again.');
-        }
+        try { exportPlanToCSV(plan, assignments); }
+        catch (error) { console.error('CSV Export failed:', error); alert('Failed to export CSV.'); }
     };
 
     const handleExportPDF = () => {
+        try { generateStaffingPlanPDF({ plan, assignments, allStaff }); }
+        catch (error) { console.error('PDF Export failed:', error); alert('Failed to export PDF.'); }
+    };
+
+    // Save plan to database
+    const handleSave = async () => {
+        setSaving(true);
         try {
-            generateStaffingPlanPDF({
-                plan,
-                assignments,
-                allStaff
+            const planData = {
+                requirements: plan.requirements,
+                total_staff: assignments.length,
+                total_freelancers: assignments.filter(a => a.is_freelance).length,
+                venue_name: plan.venue_name,
+                event_date: plan.event_date,
+                guest_count: plan.guest_count
+            };
+
+            const res = await fetch('/api/plans/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    event_id: plan.event_id,
+                    plan_data: planData,
+                    assignments: assignments
+                })
             });
-        } catch (error) {
-            console.error('PDF Export failed:', error);
-            alert('Failed to export PDF. Please try again.');
+
+            const data = await res.json();
+            if (data.success) {
+                setSaved(true);
+                setTimeout(() => setSaved(false), 3000);
+            } else {
+                alert('Failed to save plan: ' + (data.error || 'Unknown error'));
+            }
+        } catch (err) {
+            console.error('Save error:', err);
+            alert('Failed to save plan.');
+        } finally {
+            setSaving(false);
         }
     };
 
+    // Regenerate plan
+    const handleRegenerate = async (reason: string) => {
+        setShowRegenModal(false);
+        setRegenerating(true);
+        try {
+            if (planId) {
+                // Regenerate existing saved plan
+                const res = await fetch(`/api/plans/${planId}/regenerate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reason })
+                });
+                const data = await res.json();
+                if (data.success && data.plan) {
+                    const newAssignments = data.plan.requirements.flatMap((r: any) => r.assignments);
+                    setAssignments(newAssignments);
+                    setSaved(false);
+                }
+            } else {
+                // Regenerate from scratch
+                const res = await fetch('/api/plans/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ event_id: plan.event_id })
+                });
+                const data = await res.json();
+                if (data.requirements) {
+                    const newAssignments = data.requirements.flatMap((r: any) => r.assignments);
+                    setAssignments(newAssignments);
+                    setSaved(false);
+                }
+            }
+        } catch (err) {
+            console.error('Regeneration error:', err);
+            alert('Failed to regenerate plan.');
+        } finally {
+            setRegenerating(false);
+        }
+    };
+
+    // Add freelancer to plan
+    const handleAddFreelancer = (freelancer: Freelancer & { role_id: number }) => {
+        const newAssignment: PlanAssignment = {
+            staff_id: -(Date.now()),
+            staff_name: `${freelancer.name} (FL)`,
+            role_id: freelancer.role_id,
+            role_name: freelancerRole?.name || freelancer.role || 'Staff',
+            status: 'pending',
+            is_freelance: true
+        };
+        setAssignments([...assignments, newAssignment]);
+        setFreelancerRole(null);
+        setSaved(false);
+    };
+
     // Group assignments by role for display
-    const assignmentsByRole: Record<string, PlanAssignment[]> = assignments.reduce((acc: Record<string, PlanAssignment[]>, curr: PlanAssignment) => {
-        if (!acc[curr.role_name]) acc[curr.role_name] = [];
-        acc[curr.role_name].push(curr);
-        return acc;
-    }, {});
+    const assignmentsByRole: Record<string, PlanAssignment[]> = assignments.reduce(
+        (acc: Record<string, PlanAssignment[]>, curr: PlanAssignment) => {
+            if (!acc[curr.role_name]) acc[curr.role_name] = [];
+            acc[curr.role_name].push(curr);
+            return acc;
+        }, {}
+    );
 
     const getRoleName = (roleId: number) => roles.find(r => r.id === roleId)?.name || 'Unknown Role';
     const getLanguages = (staff: StaffMember) => {
@@ -144,6 +251,15 @@ export default function GeneratedPlanView({ plan, onBack, onExport }: GeneratedP
         return langs.join(', ');
     };
 
+    const totalGap = requirementRows.reduce((sum, r) => sum + r.gap, 0);
+
+    // Priority badge config
+    const priorityBadges: Record<string, { bg: string; color: string; label: string }> = {
+        normal: { bg: '#f1f5f9', color: '#475569', label: 'Normal' },
+        vip: { bg: '#FFF3E0', color: '#E65100', label: '⭐ VIP' },
+        vvip: { bg: '#FFF8E1', color: '#FF6F00', label: '👑 VVIP' }
+    };
+
     return (
         <div className={styles.generatedView} ref={planRef}>
             {/* Header */}
@@ -152,23 +268,58 @@ export default function GeneratedPlanView({ plan, onBack, onExport }: GeneratedP
                     ← Back to Plans
                 </button>
                 <div className={styles.planTitle}>
-                    <h2>{plan.venue_name}</h2>
+                    <h2>{eventName || plan.venue_name}</h2>
                     <span className={styles.planDate}>
-                        {new Date(plan.event_date).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
+                        {plan.venue_name} • {new Date(plan.event_date).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
+                        {eventStartTime && ` • ${eventStartTime}${eventEndTime ? ` – ${eventEndTime}` : ''}`}
                     </span>
-                    <span className={styles.guestBadge}>👤 {plan.guest_count} Guests</span>
+                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', marginTop: '0.4rem' }}>
+                        <span className={styles.guestBadge}>👤 {plan.guest_count} Guests</span>
+                        {eventPriority && eventPriority !== 'normal' && (
+                            <span style={{
+                                display: 'inline-block', padding: '0.2rem 0.6rem', borderRadius: '6px',
+                                fontSize: '0.8rem', fontWeight: 600,
+                                background: priorityBadges[eventPriority]?.bg || '#f1f5f9',
+                                color: priorityBadges[eventPriority]?.color || '#475569'
+                            }}>
+                                {priorityBadges[eventPriority]?.label || eventPriority}
+                            </span>
+                        )}
+                    </div>
                 </div>
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
-                    <button onClick={handleExportCSV} className={styles.buttonSecondary} style={{ padding: '0.5rem 1rem' }}>
-                        ⬇ Download CSV
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                    <button onClick={() => setShowRegenModal(true)} disabled={regenerating}
+                        style={{
+                            padding: '0.5rem 1rem', borderRadius: '10px', border: '1.5px solid #E65100',
+                            background: 'white', color: '#E65100', fontWeight: 600, fontSize: '0.85rem',
+                            cursor: regenerating ? 'not-allowed' : 'pointer', opacity: regenerating ? 0.6 : 1,
+                            transition: 'all 0.2s'
+                        }}>
+                        {regenerating ? '🔄 Regenerating...' : '🔄 Regenerate'}
                     </button>
+                    <button onClick={handleSave} disabled={saving}
+                        style={{
+                            padding: '0.5rem 1rem', borderRadius: '10px', border: 'none',
+                            background: saved ? '#15803d' : '#7C4C2C', color: 'white',
+                            fontWeight: 600, fontSize: '0.85rem',
+                            cursor: saving ? 'not-allowed' : 'pointer',
+                            opacity: saving ? 0.6 : 1, transition: 'all 0.2s',
+                            boxShadow: '0 4px 12px rgba(124, 76, 44, 0.2)'
+                        }}>
+                        {saving ? '💾 Saving...' : saved ? '✓ Saved!' : '💾 Save Plan'}
+                    </button>
+                    <button onClick={handleExportCSV} style={{
+                        padding: '0.5rem 1rem', borderRadius: '10px',
+                        border: '1px solid #e2e8f0', background: 'white', color: '#475569',
+                        fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer'
+                    }}>⬇ CSV</button>
                     <button onClick={handleExportPDF} className={styles.exportBtn}>
-                        ⬇ Download PDF
+                        ⬇ PDF
                     </button>
                 </div>
             </div>
 
-            {/* EXISTING DESIGN - Stats Row */}
+            {/* Stats Row */}
             <div className={styles.statsRow}>
                 <div className={styles.statCard}>
                     <span className={styles.statLabel}>Total Staff</span>
@@ -182,8 +333,8 @@ export default function GeneratedPlanView({ plan, onBack, onExport }: GeneratedP
                 </div>
                 <div className={styles.statCard}>
                     <span className={styles.statLabel}>Freelancers Needed</span>
-                    <span className={styles.statValue} style={{ color: requirementRows.some(r => r.gap > 0) ? '#e53e3e' : '#718096' }}>
-                        {requirementRows.reduce((sum, r) => sum + r.gap, 0)}
+                    <span className={styles.statValue} style={{ color: totalGap > 0 ? '#e53e3e' : '#718096' }}>
+                        {totalGap}
                     </span>
                 </div>
             </div>
@@ -201,6 +352,7 @@ export default function GeneratedPlanView({ plan, onBack, onExport }: GeneratedP
                                     key={assignment.staff_id}
                                     assignment={assignment}
                                     onToggleStatus={(status) => handleStatusToggle(assignment.staff_id, status)}
+                                    phone={staffPhones[assignment.staff_id]}
                                 />
                             ))}
                         </div>
@@ -208,10 +360,10 @@ export default function GeneratedPlanView({ plan, onBack, onExport }: GeneratedP
                 ))}
             </div>
 
-            {/* MANAGER CONTROL PANEL - TOP DOWN DESIGN */}
+            {/* MANAGER CONTROL PANEL */}
             <div className={styles.managerControlPanel}>
 
-                {/* ROW 1: FREELANCER REQUIREMENTS TABLE */}
+                {/* ROW 1: STAFFING REQUIREMENTS TABLE */}
                 <div className={styles.controlSection}>
                     <h3 className={styles.sectionTitle}>📊 Staffing Requirements & Gaps</h3>
                     <div className={styles.requirementsTable}>
@@ -242,7 +394,16 @@ export default function GeneratedPlanView({ plan, onBack, onExport }: GeneratedP
                                     {row.gap === 0 ? (
                                         <span className={styles.statusOk}>Fully Staffed</span>
                                     ) : (
-                                        <span className={styles.statusWarning}>Action Required</span>
+                                        <button
+                                            onClick={() => setFreelancerRole({ name: row.role_name, id: row.role_id })}
+                                            style={{
+                                                background: '#fff5f5', color: '#c53030', border: '1px solid #feb2b2',
+                                                padding: '0.3rem 0.6rem', borderRadius: '8px', fontWeight: 600,
+                                                fontSize: '0.8rem', cursor: 'pointer', transition: 'all 0.2s'
+                                            }}
+                                        >
+                                            + Add Freelancer
+                                        </button>
                                     )}
                                 </div>
                             </div>
@@ -250,7 +411,7 @@ export default function GeneratedPlanView({ plan, onBack, onExport }: GeneratedP
                     </div>
                 </div>
 
-                {/* ROW 2: INTERNAL STAFF POOL (PRIORITY ASSIGNMENT) */}
+                {/* ROW 2: INTERNAL STAFF POOL */}
                 <div className={styles.controlSection}>
                     <h3 className={styles.sectionTitle}>👥 Available Internal Staff (Priority Assignment)</h3>
                     <p className={styles.sectionSubtitle}>
@@ -347,11 +508,28 @@ export default function GeneratedPlanView({ plan, onBack, onExport }: GeneratedP
                             )}
                         </div>
                         <p className={styles.helperText}>
-                            💡 Search for an employee above, then use the "Assign to..." dropdown in the staff pool table.
+                            💡 Search for an employee above, then use the &quot;Assign to...&quot; dropdown in the staff pool table.
                         </p>
                     </div>
                 </div>
             </div>
+
+            {/* Modals */}
+            {showRegenModal && (
+                <RegenerationModal
+                    onConfirm={handleRegenerate}
+                    onClose={() => setShowRegenModal(false)}
+                />
+            )}
+
+            {freelancerRole && (
+                <FreelancerInput
+                    roleName={freelancerRole.name}
+                    roleId={freelancerRole.id}
+                    onAdd={handleAddFreelancer}
+                    onClose={() => setFreelancerRole(null)}
+                />
+            )}
         </div>
     );
 }

@@ -24,6 +24,7 @@ import { Event, Venue, CreateEventDTO } from "@/types";
 export default function AdminEventsPage() {
     const [events, setEvents] = useState<Event[]>([]);
     const [venues, setVenues] = useState<Venue[]>([]);
+    const [plans, setPlans] = useState<Set<number>>(new Set()); // Set of event IDs with plans
     const [loading, setLoading] = useState(true);
     const [viewMode, setViewMode] = useState<'upcoming' | 'past' | 'all'>('upcoming');
     const [searchTerm, setSearchTerm] = useState("");
@@ -45,9 +46,10 @@ export default function AdminEventsPage() {
                 url += `?from_date=${today}`;
             }
 
-            const [evRes, venRes] = await Promise.all([
+            const [evRes, venRes, planRes] = await Promise.all([
                 fetch(url),
-                fetch('/api/venues')
+                fetch('/api/venues'),
+                fetch('/api/plans')
             ]);
 
             const evJson = await evRes.json().catch(() => []);
@@ -55,6 +57,14 @@ export default function AdminEventsPage() {
 
             const evData = Array.isArray(evJson) ? evJson : [];
             const venData = Array.isArray(venJson) ? venJson : [];
+
+            // Process plans
+            const planJson = await planRes.json().catch(() => []);
+            const planSet = new Set<number>();
+            if (Array.isArray(planJson)) {
+                planJson.forEach((p: any) => planSet.add(p.event_id));
+            }
+            setPlans(planSet);
 
             if (viewMode === 'past') {
                 setEvents(evData.filter((e: any) => e.date < today).reverse());
@@ -215,6 +225,15 @@ export default function AdminEventsPage() {
                                     <MapPin size={14} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'middle' }} />
                                     {event.venue_name}
                                 </div>
+                                {plans.has(event.id) && (
+                                    <div style={{
+                                        display: 'inline-block', marginTop: '0.25rem', padding: '0.15rem 0.5rem',
+                                        borderRadius: '6px', background: '#dcfce7', color: '#166534',
+                                        fontSize: '0.75rem', fontWeight: 600, border: '1px solid #bbf7d0'
+                                    }}>
+                                        ✓ Plan Generated
+                                    </div>
+                                )}
                                 <div className={styles.guestCount}>
                                     <Users size={16} />
                                     <strong>{event.guest_count}</strong> Guests expected

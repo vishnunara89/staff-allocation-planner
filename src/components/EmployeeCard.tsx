@@ -1,14 +1,43 @@
 import React from 'react';
-import { PlanAssignment } from '@/types';
+import { PlanAssignment, EmployeeAvailability } from '@/types';
 import styles from '../app/(manager)/plans/plans.module.css';
 
 interface EmployeeCardProps {
     assignment: PlanAssignment;
     onToggleStatus: (status: 'confirmed' | 'pending' | 'declined') => void;
+    availability?: EmployeeAvailability;
+    phone?: string;
 }
 
-export default function EmployeeCard({ assignment, onToggleStatus }: EmployeeCardProps) {
+export default function EmployeeCard({ assignment, onToggleStatus, availability, phone }: EmployeeCardProps) {
     const isFreelance = assignment.is_freelance;
+
+    // Availability badge config
+    const getAvailBadge = () => {
+        if (!availability) return null;
+        const badges: Record<string, { bg: string; color: string; border: string; label: string }> = {
+            available: { bg: '#f0fdf4', color: '#15803d', border: '#bbf7d0', label: '● Available' },
+            limited: { bg: '#fffbeb', color: '#b45309', border: '#fde68a', label: '◐ Limited' },
+            unavailable: { bg: '#fef2f2', color: '#b91c1c', border: '#fecaca', label: '○ Unavailable' }
+        };
+        const b = badges[availability.status] || badges.available;
+        const label = availability.current_events.length > 0
+            ? `Working at ${availability.current_events[0]}`
+            : b.label;
+        return (
+            <span style={{
+                display: 'inline-block', fontSize: '0.65rem', padding: '0.1rem 0.5rem',
+                borderRadius: '8px', background: b.bg, color: b.color, border: `1px solid ${b.border}`,
+                fontWeight: 600, maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+            }}>{label}</span>
+        );
+    };
+
+    // Format phone for links
+    const cleanPhone = phone?.replace(/[\s-]/g, '') || '';
+    const whatsappUrl = cleanPhone
+        ? `https://wa.me/${cleanPhone.replace('+', '')}?text=Hi ${encodeURIComponent(assignment.staff_name)}, confirming your shift...`
+        : '#';
 
     return (
         <div className={`${styles.employeeCard} ${isFreelance ? styles.freelanceCard : ''}`}>
@@ -21,7 +50,15 @@ export default function EmployeeCard({ assignment, onToggleStatus }: EmployeeCar
                         {assignment.staff_name}
                         {isFreelance && <span className={styles.freelanceBadge}>Freelance</span>}
                     </div>
-                    <div className={styles.employeeRole}>{assignment.role_name}</div>
+                    <div className={styles.employeeRole}>
+                        {assignment.role_name}
+                        {availability && (
+                            <span style={{ marginLeft: '0.5rem', fontSize: '0.75rem', color: '#94a3b8' }}>
+                                ({availability.hours_worked}/{12}h)
+                            </span>
+                        )}
+                    </div>
+                    {getAvailBadge()}
                 </div>
             </div>
 
@@ -36,8 +73,27 @@ export default function EmployeeCard({ assignment, onToggleStatus }: EmployeeCar
                     {assignment.status === 'confirmed' ? 'Confirmed' : 'Unavailable'}
                 </button>
 
+                {/* Phone call button */}
+                {cleanPhone && (
+                    <a
+                        href={`tel:${cleanPhone}`}
+                        style={{
+                            width: '32px', height: '32px', borderRadius: '8px',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            background: '#EEF2FF', color: '#4F46E5', transition: 'all 0.2s',
+                            textDecoration: 'none'
+                        }}
+                        title="Call"
+                    >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" />
+                        </svg>
+                    </a>
+                )}
+
+                {/* WhatsApp button */}
                 <a
-                    href={`https://wa.me/?text=Hi ${assignment.staff_name}, confirming your shift for...`}
+                    href={whatsappUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className={styles.whatsappBtn}

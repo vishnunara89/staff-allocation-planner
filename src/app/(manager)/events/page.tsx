@@ -14,6 +14,7 @@ export default function EventsPage() {
     const [venues, setVenues] = useState<Venue[]>([]);
     const [viewMode, setViewMode] = useState<ViewMode>('upcoming');
     const [searchTerm, setSearchTerm] = useState('');
+    const [plans, setPlans] = useState<Set<number>>(new Set());
 
     // Modal States
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -49,10 +50,23 @@ export default function EventsPage() {
                 url += `?from_date=${today}`;
             }
 
-            const res = await fetch(url);
+            const [res, planRes] = await Promise.all([
+                fetch(url),
+                fetch('/api/plans')
+            ]);
+
             if (res.ok) {
                 const data = await res.json();
                 setEvents(data);
+            }
+
+            if (planRes.ok) {
+                const planJson = await planRes.json();
+                const planSet = new Set<number>();
+                if (Array.isArray(planJson)) {
+                    planJson.forEach((p: any) => planSet.add(p.event_id));
+                }
+                setPlans(planSet);
             }
         } catch (e) {
             console.error('Failed to fetch events', e);
@@ -260,6 +274,15 @@ export default function EventsPage() {
                                         <div style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '0.5rem' }}>
                                             {getVenueName(event.venue_id)}
                                         </div>
+                                        {plans.has(event.id) && (
+                                            <div style={{
+                                                display: 'inline-block', marginBottom: '0.5rem', padding: '0.15rem 0.5rem',
+                                                borderRadius: '6px', background: '#dcfce7', color: '#166534',
+                                                fontSize: '0.75rem', fontWeight: 600, border: '1px solid #bbf7d0'
+                                            }}>
+                                                ✓ Plan Generated
+                                            </div>
+                                        )}
                                         <div className={styles.guestCount}>
                                             👤 <strong>{event.guest_count}</strong> Guests expected
                                         </div>

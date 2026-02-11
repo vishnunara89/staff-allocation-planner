@@ -170,6 +170,76 @@ if (!globalForDb.sqlite) {
     `).run();
 
     /* =========================
+       EMPLOYEE ASSIGNMENTS (Plan Generation Module)
+    ========================= */
+    database.prepare(`
+      CREATE TABLE IF NOT EXISTS employee_assignments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        employee_id INTEGER NOT NULL,
+        event_id INTEGER NOT NULL,
+        plan_id INTEGER,
+        date TEXT NOT NULL,
+        start_time TEXT NOT NULL,
+        end_time TEXT NOT NULL,
+        hours_worked REAL NOT NULL DEFAULT 0,
+        status TEXT DEFAULT 'assigned',
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+        FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
+      )
+    `).run();
+
+    /* =========================
+       FREELANCERS (Plan Generation Module)
+    ========================= */
+    database.prepare(`
+      CREATE TABLE IF NOT EXISTS freelancers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        phone TEXT NOT NULL,
+        role TEXT,
+        skills TEXT,
+        notes TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+      )
+    `).run();
+
+    /* =========================
+       GENERATED PLANS (Plan Generation Module)
+    ========================= */
+    database.prepare(`
+      CREATE TABLE IF NOT EXISTS generated_plans (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        event_id INTEGER NOT NULL UNIQUE,
+        generated_by INTEGER NOT NULL,
+        generated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        status TEXT DEFAULT 'draft',
+        version INTEGER DEFAULT 1,
+        regeneration_reason TEXT,
+        plan_data TEXT,
+        FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
+      )
+    `).run();
+
+    /* =========================
+       PLAN ACTIVITY LOG (Plan Generation Module)
+    ========================= */
+    database.prepare(`
+      CREATE TABLE IF NOT EXISTS plan_activity_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        plan_id INTEGER NOT NULL,
+        event_id INTEGER NOT NULL,
+        action TEXT NOT NULL,
+        reason TEXT,
+        performed_by INTEGER NOT NULL,
+        performed_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        changes TEXT,
+        FOREIGN KEY (plan_id) REFERENCES generated_plans(id) ON DELETE CASCADE,
+        FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
+      )
+    `).run();
+
+    /* =========================
        SEEDS & OTHER TABLES
     ========================= */
     ensureRolesExist(database);

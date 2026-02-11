@@ -50,45 +50,55 @@ export async function GET() {
     ===================== */
     const totalVenues = role === "admin" ? safeCount("venues") : venueIds.length;
 
-    // Staff scoped by home base venue if manager
-    const staffWhere = role === "manager" ? `WHERE home_base_venue_id IN (${idList})` : "";
-    const totalStaff = safeCount("employees", staffWhere);
+    // Staff: Show GLOBAL count for both Admin and Manager (Centralized View)
+    const totalStaff = safeCount("employees");
 
-    // Upcoming Events scoped by venue and date
+    // Upcoming Events: Scoped by venue for Managers (Operational View)
     const eventWhere = `WHERE date >= '${today}' ${role === "manager" ? `AND venue_id IN (${idList})` : ""}`;
     const upcomingEventsCount = safeCount("events", eventWhere);
 
-    // Active Plans count based on distinct event/venue pairings in staffing_plans
-    // Note: This logic assumes a plan is associated with an event
+    // Active Plans
     const planWhere = role === "manager" ? `WHERE venue_id IN (${idList})` : "";
     const activePlansQuery = `
       SELECT COUNT(DISTINCT event_date || '-' || venue_id) as c 
-      FROM staffing_plans 
+      FROM generated_plans gp
+      JOIN events e ON gp.event_id = e.id
       ${planWhere}
     `;
-    const activePlans = (db.prepare(activePlansQuery).get() as CountRow).c;
+    // Note: Switched to generated_plans table
+    let activePlans = 0;
+    try {
+      activePlans = (db.prepare(activePlansQuery).get() as CountRow).c;
+    } catch (e) {
+      // Fallback or ignore if table empty/missing
+      activePlans = 0;
+    }
 
     /* =====================
-       STAFF AVAILABILITY
+       STAFF AVAILABILITY - Global for Managers too
     ===================== */
-    const availWhere = `WHERE availability_status = 'available' ${role === 'manager' ? `AND home_base_venue_id IN (${idList})` : ""}`;
+    const availWhere = `WHERE availability_status = 'available'`;
     const availableStaff = safeCount("employees", availWhere);
     const unavailableStaff = totalStaff - availableStaff;
 
     /* =====================
-       EMPLOYMENT TYPE
+       EMPLOYMENT TYPE - Global for Managers too
     ===================== */
-    // Map internal vs others (freelance, agency etc)
-    const internalWhere = `WHERE employment_type = 'internal' ${role === 'manager' ? `AND home_base_venue_id IN (${idList})` : ""}`;
+    const internalWhere = `WHERE employment_type = 'internal'`;
     const internalCount = safeCount("employees", internalWhere);
     const externalCount = totalStaff - internalCount;
 
     /* =====================
-       VENUE TYPES
+       VENUE TYPES - Remains Scoped
     ===================== */
-    const typeQuery = (type: string) => `WHERE type = '${type}' ${role === 'manager' ? `AND id IN (${idList})` : ""}`;
-    const campVenues = safeCount("venues", typeQuery("camp"));
-    const privateVenues = safeCount("venues", typeQuery("private"));
+    const typeQuery = (type: string) => `WHERE type = '${type}' ${role === "manager" && venueIds.length > 0 ? `AND id IN (${idList})` : ""}`;
+
+    // Safety check for venue types query
+    let campVenues = 0, privateVenues = 0;
+    if (role === 'admin' || venueIds.length > 0) {
+      campVenues = safeCount("venues", typeQuery("camp"));
+      privateVenues = safeCount("venues", typeQuery("private"));
+    }
     const otherVenues = totalVenues - campVenues - privateVenues;
 
     return NextResponse.json({

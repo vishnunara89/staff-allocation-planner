@@ -149,6 +149,11 @@ if (!globalForDb.sqlite) {
     `).run();
 
     /* =========================
+       EVENTS AUTO-MIGRATIONS
+    ========================= */
+    addColumnIfMissing(database, "events", "event_name", "TEXT");
+
+    /* =========================
        ACTIVITY LOG (NEW)
     ========================= */
     database.prepare(`

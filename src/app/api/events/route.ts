@@ -67,16 +67,17 @@ export async function POST(request: Request) {
 
         const stmt = db.prepare(`
       INSERT INTO events (
-        date, venue_id, guest_count, service_style_override,
+        event_name, date, venue_id, guest_count, service_style_override,
         special_requirements, priority, start_time, end_time
       )
       VALUES (
-        @date, @venue_id, @guest_count, @service_style_override,
+        @event_name, @date, @venue_id, @guest_count, @service_style_override,
         @special_requirements, @priority, @start_time, @end_time
       )
     `);
 
         const result = stmt.run({
+            event_name: body.event_name || null,
             date: body.date,
             venue_id: body.venue_id,
             guest_count: body.guest_count,

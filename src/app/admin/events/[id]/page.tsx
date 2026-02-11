@@ -13,7 +13,7 @@ import {
     Share2,
     MessageSquare
 } from "lucide-react";
-import styles from "./events.module.css";
+import styles from "../events.module.css";
 import Link from "next/link";
 
 export default function AdminEventDetailPage({ params }: { params: { id: string } }) {

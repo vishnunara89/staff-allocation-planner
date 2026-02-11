@@ -23,6 +23,32 @@ function parseCSVRow(data: any, roles: Array<{ id: number; name: string }>, venu
       notes = `${notes}\n${phoneEntry}`;
   }
 
+  // Handle Skills
+  let special_skills: string[] = [];
+  const rawSkills = data.skills || data.special_skills || "";
+  if (rawSkills) {
+    const separator = rawSkills.includes("|") ? "|" : ",";
+    special_skills = rawSkills.split(separator).map((s: string) => s.trim()).filter(Boolean);
+  }
+
+  // Handle Languages
+  let other_languages: Record<string, string> = {};
+  const rawLangs = data.languages || data.other_languages || "";
+  if (rawLangs) {
+    const separator = rawLangs.includes("|") ? "|" : ",";
+    const entries = rawLangs.split(separator).map((s: string) => s.trim()).filter(Boolean);
+
+    entries.forEach((entry: string) => {
+      if (entry.includes(":")) {
+        const [lang, prof] = entry.split(":").map(s => s.trim());
+        const validProfs = ["basic", "conversational", "fluent", "native"];
+        other_languages[lang] = validProfs.includes(prof.toLowerCase()) ? prof.toLowerCase() : "conversational";
+      } else {
+        other_languages[entry] = "conversational";
+      }
+    });
+  }
+
   return {
     full_name: data.full_name,
     primary_role_id: roleId,
@@ -31,17 +57,8 @@ function parseCSVRow(data: any, roles: Array<{ id: number; name: string }>, venu
       ? data.secondary_roles.split(",").map((s: string) => s.trim())
       : [],
     english_proficiency: data.english_proficiency || "basic",
-    other_languages: data.other_languages
-      ? data.other_languages
-          .split(",")
-          .reduce((acc: any, l: string) => {
-            acc[l.trim()] = "fluent";
-            return acc;
-          }, {})
-      : {},
-    special_skills: data.special_skills
-      ? data.special_skills.split(",").map((s: string) => s.trim())
-      : [],
+    other_languages,
+    special_skills,
     experience_tags: [],
     employment_type: data.employment_type || "internal",
     availability_status: data.availability_status || "available",
@@ -53,9 +70,9 @@ function parseCSVRow(data: any, roles: Array<{ id: number; name: string }>, venu
    POST: Bulk Import Employees
 ========================= */
 export async function POST(request: Request) {
-    try {
-        const formData = await request.formData();
-        const file = formData.get('file') as File;
+  try {
+    const formData = await request.formData();
+    const file = formData.get('file') as File;
 
     if (!file) {
       return NextResponse.json(

@@ -1,3 +1,4 @@
+// @ts-nocheck
 const Database = require('better-sqlite3');
 const path = require('path');
 
@@ -76,7 +77,7 @@ try {
     `);
 
     const testDate = '2026-03-01';
-    insertEvent.run(testDate, vA, 75, 'normal', '18:00', '22:00');  // Should match bracket 1
+    insertEvent.run(testDate, vA, 75, 'vip', '18:00', '22:00');  // Should match bracket 1
     insertEvent.run(testDate, vB, 25, 'normal', '18:00', '22:00');  // Should match ratio (3W, 1M)
     insertEvent.run(testDate, vC, 50, 'normal', '18:00', '22:00');  // Should have 0 requirements
 

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import {
     X, UserPlus, Loader2, Trash2, Plus, ChevronDown,
-    Briefcase, Zap, Phone, MapPin, FileText, Clock, CalendarDays, Save, Pencil
+    Briefcase, Zap, Phone, MapPin, FileText, Clock, CalendarDays, Save, Pencil, Globe
 } from "lucide-react";
 import { Venue, Role, StaffMember } from "@/types";
 
@@ -29,6 +29,19 @@ interface EmployeeModalProps {
     initialData?: StaffMember | null;
     readOnly?: boolean;
 }
+
+const LANGUAGES = [
+    "English", "Spanish", "French", "Arabic", "Mandarin", "Hindi",
+    "Portuguese", "Russian", "Japanese", "German", "Italian",
+    "Korean", "Dutch", "Swedish", "Other"
+];
+
+const PROFICIENCIES = [
+    { id: 'basic', name: 'Basic' },
+    { id: 'conversational', name: 'Conversational' },
+    { id: 'fluent', name: 'Fluent' },
+    { id: 'native', name: 'Native' }
+];
 
 /* ===================================
    INLINE DROPDOWN WITH ADD/DELETE
@@ -273,6 +286,8 @@ export default function EmployeeModal({
     const [skills, setSkills] = useState<Skill[]>([]);
     const [events, setEvents] = useState<EventItem[]>([]);
     const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+    const [selectedLanguages, setSelectedLanguages] = useState<Record<string, string>>({});
+    const [activeLanguage, setActiveLanguage] = useState<string | null>(null);
     const isEditMode = !!initialData;
 
     // Form state
@@ -305,6 +320,19 @@ export default function EmployeeModal({
         if (isOpen) {
             setFormData(getInitialState());
             setSelectedSkills(initialData?.special_skills || []);
+
+            // Parse other_languages JSON
+            try {
+                const langs = initialData?.other_languages;
+                if (langs) {
+                    setSelectedLanguages(typeof langs === 'string' ? JSON.parse(langs) : langs);
+                } else {
+                    setSelectedLanguages({});
+                }
+            } catch (e) {
+                setSelectedLanguages({});
+            }
+
             fetchRoles();
             fetchSkills();
             fetchEvents();
@@ -357,6 +385,7 @@ export default function EmployeeModal({
                 employment_type: 'internal',
                 availability_status: initialData?.availability_status || 'available',
                 special_skills: selectedSkills,
+                other_languages: selectedLanguages, // Send as object, API will stringify if needed
                 current_event_id: formData.current_event_id ? Number(formData.current_event_id) : null,
                 working_hours: formData.working_hours ? Number(formData.working_hours) : 0
             };
@@ -569,6 +598,97 @@ export default function EmployeeModal({
                                 placeholder="Add a skill..."
                                 readOnly={readOnly}
                             />
+                        </div>
+
+                        {/* Language Selection Section */}
+                        <div style={{ marginBottom: '1.25rem', paddingTop: '1.25rem', borderTop: '1px solid #f1f5f9' }}>
+                            <label style={{
+                                fontSize: '0.8rem', fontWeight: 700, color: '#94a3b8',
+                                textTransform: 'uppercase', letterSpacing: '0.05em',
+                                display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '1rem'
+                            }}>
+                                <Globe size={16} style={{ color: 'var(--primary-color)' }} /> LANGUAGES
+                            </label>
+
+                            {/* Selected languages tags */}
+                            {Object.entries(selectedLanguages).length > 0 && (
+                                <div style={{
+                                    display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem'
+                                }}>
+                                    {Object.entries(selectedLanguages).map(([lang, prof]) => (
+                                        <span key={lang} style={{
+                                            display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+                                            padding: '0.3rem 0.75rem', background: 'rgba(124,76,44,0.08)',
+                                            borderRadius: '20px', fontSize: '0.85rem', fontWeight: 600,
+                                            color: 'var(--primary-color)', border: '1px solid rgba(124,76,44,0.1)'
+                                        }}>
+                                            {lang} <span style={{ opacity: 0.6, fontSize: '0.75rem', fontWeight: 500 }}>({prof.charAt(0).toUpperCase() + prof.slice(1)})</span>
+                                            {!readOnly && (
+                                                <button type="button" onClick={() => {
+                                                    const updated = { ...selectedLanguages };
+                                                    delete updated[lang];
+                                                    setSelectedLanguages(updated);
+                                                }}
+                                                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0', color: '#94a3b8', display: 'flex', alignItems: 'center', marginLeft: '2px' }}
+                                                >
+                                                    <X size={14} />
+                                                </button>
+                                            )}
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
+
+                            {!readOnly && (
+                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    <div style={{ flex: 1 }}>
+                                        <select
+                                            value={activeLanguage || ""}
+                                            onChange={(e) => setActiveLanguage(e.target.value)}
+                                            style={{
+                                                width: '100%', height: '48px', padding: '0 1rem',
+                                                border: '1.5px solid #e2e8f0', borderRadius: '12px',
+                                                background: '#f8fafc', outline: 'none', fontSize: '0.95rem',
+                                                fontWeight: 600, cursor: 'pointer', boxSizing: 'border-box'
+                                            }}
+                                        >
+                                            <option value="">Add language...</option>
+                                            {LANGUAGES.filter(l => !selectedLanguages[l]).map(l => (
+                                                <option key={l} value={l}>{l}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    {activeLanguage && (
+                                        <div style={{ flex: 1 }}>
+                                            <select
+                                                autoFocus
+                                                value=""
+                                                onChange={(e) => {
+                                                    if (e.target.value) {
+                                                        setSelectedLanguages(prev => ({
+                                                            ...prev,
+                                                            [activeLanguage]: e.target.value
+                                                        }));
+                                                        setActiveLanguage(null);
+                                                    }
+                                                }}
+                                                style={{
+                                                    width: '100%', height: '48px', padding: '0 1rem',
+                                                    border: '1.5px solid var(--primary-color)', borderRadius: '12px',
+                                                    background: 'white', outline: 'none', fontSize: '0.95rem',
+                                                    fontWeight: 600, cursor: 'pointer', boxSizing: 'border-box'
+                                                }}
+                                            >
+                                                <option value="">Select proficiency...</option>
+                                                {PROFICIENCIES.map(p => (
+                                                    <option key={p.id} value={p.id}>{p.name}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
                         {/* EDIT MODE: Event Assignment + Working Hours */}

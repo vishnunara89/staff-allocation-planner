@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Event, Venue, CreateEventDTO } from '@/types';
 import styles from './events.module.css';
 import EventModal from '@/components/EventModal';
-import EventReportModal from '@/components/EventReportModal';
+import EventDetailModal from '@/components/EventDetailModal';
 
 type ViewMode = 'upcoming' | 'past' | 'all';
 
@@ -18,7 +18,7 @@ export default function EventsPage() {
     // Modal States
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingEvent, setEditingEvent] = useState<Partial<Event> | null>(null);
-    const [reportingEvent, setReportingEvent] = useState<Event | null>(null);
+    const [viewingEvent, setViewingEvent] = useState<Event | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -75,6 +75,7 @@ export default function EventsPage() {
         if (searchTerm.trim()) {
             const lowerTerm = searchTerm.toLowerCase();
             filtered = filtered.filter(e =>
+                e.event_name?.toLowerCase().includes(lowerTerm) ||
                 e.venue_name?.toLowerCase().includes(lowerTerm) ||
                 e.special_requirements?.toLowerCase().includes(lowerTerm) ||
                 e.date.includes(lowerTerm)
@@ -255,7 +256,10 @@ export default function EventsPage() {
                                     </div>
 
                                     <div className={styles.eventInfo}>
-                                        <div className={styles.venueName}>{getVenueName(event.venue_id)}</div>
+                                        <div className={styles.venueName}>{event.event_name || 'Untitled Event'}</div>
+                                        <div style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '0.5rem' }}>
+                                            {getVenueName(event.venue_id)}
+                                        </div>
                                         <div className={styles.guestCount}>
                                             👤 <strong>{event.guest_count}</strong> Guests expected
                                         </div>
@@ -263,7 +267,7 @@ export default function EventsPage() {
                                         <div className={styles.reqsSummary}>
                                             {getReqsSummary(event.special_requirements).map((r: any, idx: number) => (
                                                 <span key={idx} className={styles.reqMiniBadge}>
-                                                    {r.quantity}x {r.value}
+                                                    {r.quantity}x {r.skill}
                                                 </span>
                                             ))}
                                         </div>
@@ -271,10 +275,10 @@ export default function EventsPage() {
 
                                     <div className={styles.cardActions}>
                                         <button
-                                            onClick={() => setReportingEvent(event)}
+                                            onClick={() => setViewingEvent(event)}
                                             className={styles.btnReport}
                                         >
-                                            Report
+                                            View
                                         </button>
 
                                         <button
@@ -323,10 +327,14 @@ export default function EventsPage() {
                 selectedDate={new Date().toISOString().split('T')[0]}
             />
 
-            <EventReportModal
-                event={reportingEvent}
-                onClose={() => setReportingEvent(null)}
+            <EventDetailModal
+                event={viewingEvent}
+                onClose={() => setViewingEvent(null)}
                 venues={venues}
+                onEdit={(ev) => {
+                    setEditingEvent(ev);
+                    setIsModalOpen(true);
+                }}
             />
         </div>
     );

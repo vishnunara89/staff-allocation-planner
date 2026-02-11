@@ -15,10 +15,10 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: BulkImpo
     const [result, setResult] = useState<{ count?: number; error?: string; warnings?: string[]; errors?: string[] } | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const CSV_TEMPLATE_HEADERS = 'full_name,phone_number,primary_role,secondary_roles,english_proficiency,other_languages,special_skills,home_base_venue,employment_type,availability_status,notes';
+    const CSV_TEMPLATE_HEADERS = 'full_name,phone_number,primary_role,home_base_venue,skills,languages,notes';
     const CSV_TEMPLATE_EXAMPLES = [
-        'John Doe,+971501234567,Waiter,Bartender,good,"French,Spanish","First Aid,VIP",SONARA,internal,available,Experienced server',
-        'Jane Smith,+971509876543,Manager,,fluent,Arabic,Leadership,NEST,internal,available,Guest relations specialist',
+        'John Doe,+971501234567,Waiter,SONARA,Service|Fine Dining,Spanish:fluent|French:conversational,Available weekends',
+        'Jane Smith,+971509876543,Bartender,NEST,Mixology|Customer Service,English:native|Arabic:basic,Prefers night shifts',
         '# ROLES: Waiter, Runner, Supervisor, Manager, Bartender, Barback, Bar Supervisor, Sommelier, Host, Cashier, Busser, Head Waiter',
         '# VENUES: SONARA, NEST, LADY NARA',
         '# ENGLISH: basic, medium, good, fluent',

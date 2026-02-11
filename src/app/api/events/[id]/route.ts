@@ -11,7 +11,7 @@ export async function PUT(
 
         const stmt = db.prepare(`
       UPDATE events 
-      SET date = @date, venue_id = @venue_id, guest_count = @guest_count,
+      SET event_name = @event_name, date = @date, venue_id = @venue_id, guest_count = @guest_count,
           service_style_override = @service_style_override,
           special_requirements = @special_requirements, priority = @priority,
           start_time = @start_time, end_time = @end_time
@@ -20,14 +20,15 @@ export async function PUT(
 
         const info = stmt.run({
             id: id,
+            event_name: body.event_name || null,
             date: body.date,
             venue_id: body.venue_id,
             guest_count: body.guest_count,
-            service_style_override: body.service_style_override,
-            special_requirements: body.special_requirements,
-            priority: body.priority,
-            start_time: body.start_time,
-            end_time: body.end_time
+            service_style_override: body.service_style_override || null,
+            special_requirements: body.special_requirements || '',
+            priority: body.priority || 'normal',
+            start_time: body.start_time || null,
+            end_time: body.end_time || null
         });
 
         if (info.changes === 0) {

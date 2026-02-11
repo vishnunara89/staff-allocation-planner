@@ -60,12 +60,7 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
     const [showRoleManager, setShowRoleManager] = useState(false);
     const [showSkillManager, setShowSkillManager] = useState(false);
 
-    const SKILL_OPTIONS = [
-        'Table Service', 'Food Running', 'Mixology', 'Barista',
-        'Hosting', 'Fine Dining', 'Buffet Service', 'Event Setup',
-        'Wine Service', 'Guest Relations', 'Cash Handling', 'Inventory',
-        'Team Lead', 'Training', 'VIP Service', 'Other'
-    ];
+
 
     // Default PAX brackets (0-100 in steps of 10)
     const DEFAULT_BRACKETS = [
@@ -901,8 +896,8 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                                                         className={styles.skillSelect}
                                                     >
                                                         <option value="">Select Skill</option>
-                                                        {SKILL_OPTIONS.map(skill => (
-                                                            <option key={skill} value={skill}>{skill}</option>
+                                                        {skills.map(skill => (
+                                                            <option key={skill.id} value={skill.name}>{skill.name}</option>
                                                         ))}
                                                     </select>
                                                 </td>

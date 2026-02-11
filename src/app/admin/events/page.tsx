@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
     Calendar,
     Search,
@@ -10,20 +10,26 @@ import {
     AlertTriangle,
     CheckCircle2,
     Plus,
-    Loader2
+    Loader2,
+    MapPin,
+    Pencil,
+    X
 } from "lucide-react";
 import styles from "./events.module.css";
 import Link from "next/link";
 import EventModal from "@/components/EventModal";
+import EventDetailModal from "@/components/EventDetailModal";
 import { Event, Venue, CreateEventDTO } from "@/types";
 
 export default function AdminEventsPage() {
     const [events, setEvents] = useState<Event[]>([]);
     const [venues, setVenues] = useState<Venue[]>([]);
     const [loading, setLoading] = useState(true);
-    const [viewMode, setViewMode] = useState<'Upcoming' | 'Past' | 'All'>('Upcoming');
-    const [searchQuery, setSearchQuery] = useState("");
+    const [viewMode, setViewMode] = useState<'upcoming' | 'past' | 'all'>('upcoming');
+    const [searchTerm, setSearchTerm] = useState("");
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingEvent, setEditingEvent] = useState<Partial<Event> | null>(null);
+    const [viewingEvent, setViewingEvent] = useState<Event | null>(null);
 
     useEffect(() => {
         fetchData();
@@ -35,7 +41,7 @@ export default function AdminEventsPage() {
             const today = new Date().toISOString().split('T')[0];
             let url = '/api/events';
 
-            if (viewMode === 'Upcoming') {
+            if (viewMode === 'upcoming') {
                 url += `?from_date=${today}`;
             }
 
@@ -50,7 +56,7 @@ export default function AdminEventsPage() {
             const evData = Array.isArray(evJson) ? evJson : [];
             const venData = Array.isArray(venJson) ? venJson : [];
 
-            if (viewMode === 'Past') {
+            if (viewMode === 'past') {
                 setEvents(evData.filter((e: any) => e.date < today).reverse());
             } else {
                 setEvents(evData);
@@ -65,26 +71,67 @@ export default function AdminEventsPage() {
         }
     }
 
-    const handleCreateEvent = async (dto: Partial<CreateEventDTO>) => {
+    const handleSaveEvent = async (dto: Partial<CreateEventDTO>) => {
         try {
-            const res = await fetch('/api/events', {
-                method: 'POST',
+            const url = editingEvent?.id ? `/api/events/${editingEvent.id}` : '/api/events';
+            const method = editingEvent?.id ? 'PUT' : 'POST';
+
+            const res = await fetch(url, {
+                method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(dto)
             });
             if (res.ok) {
                 fetchData();
                 setIsModalOpen(false);
+                setEditingEvent(null);
             }
         } catch (err) {
-            console.error("Failed to create event:", err);
+            console.error("Failed to save event:", err);
         }
     };
 
-    const filteredEvents = events.filter(e =>
-        e.venue_name?.toLowerCase()?.includes(searchQuery.toLowerCase()) ||
-        e.date?.includes(searchQuery)
-    );
+    const handleDeleteEvent = async (id: number) => {
+        if (!confirm('Are you sure you want to delete this event? This action cannot be undone.')) return;
+        try {
+            await fetch(`/api/events/${id}`, { method: 'DELETE' });
+            fetchData();
+        } catch (e) {
+            console.error('Failed to delete event', e);
+        }
+    };
+
+    const filteredEvents = useMemo(() => {
+        let filtered = [...events];
+
+        // 1. Date Filtering
+        const today = new Date().toISOString().split('T')[0];
+        if (viewMode === 'upcoming') {
+            filtered = filtered.filter(e => e.date >= today);
+        } else if (viewMode === 'past') {
+            filtered = filtered.filter(e => e.date < today);
+        }
+
+        // 2. Search Filtering
+        if (searchTerm.trim()) {
+            const lowerTerm = searchTerm.toLowerCase();
+            filtered = filtered.filter(e =>
+                e.event_name?.toLowerCase().includes(lowerTerm) ||
+                e.venue_name?.toLowerCase().includes(lowerTerm) ||
+                e.special_requirements?.toLowerCase().includes(lowerTerm) ||
+                e.date.includes(lowerTerm)
+            );
+        }
+
+        // 3. Sorting (Matching Manager)
+        filtered.sort((a, b) => {
+            const dateA = new Date(`${a.date}T${a.start_time || '00:00'}`);
+            const dateB = new Date(`${b.date}T${b.start_time || '00:00'}`);
+            return viewMode === 'past' ? dateB.getTime() - dateA.getTime() : dateA.getTime() - dateB.getTime();
+        });
+
+        return filtered;
+    }, [events, viewMode, searchTerm]);
 
     return (
         <div className={styles.container}>
@@ -101,27 +148,38 @@ export default function AdminEventsPage() {
                 </button>
             </header>
 
-            <div className={styles.toolbar}>
-                <div className={styles.filters}>
-                    {(['Upcoming', 'Past', 'All'] as const).map(mode => (
-                        <div
-                            key={mode}
-                            className={`${styles.filter} ${viewMode === mode ? styles.activeFilter : ''}`}
-                            onClick={() => setViewMode(mode)}
-                        >
-                            {mode}
-                        </div>
-                    ))}
-                </div>
-                <div style={{ position: 'relative', width: '300px' }}>
-                    <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+            {/* Filter Bar Unified */}
+            <div className={styles.filterBar}>
+                <div className={styles.searchWrapper}>
+                    <span className={styles.searchIcon}>🔍</span>
                     <input
                         type="text"
-                        placeholder="Search venues or dates..."
-                        value={searchQuery}
-                        onChange={e => setSearchQuery(e.target.value)}
-                        style={{ width: '100%', height: '44px', padding: '0 1rem 0 3rem', border: '1.5px solid #e2e8f0', borderRadius: '10px', background: '#f8fafc', outline: 'none' }}
+                        placeholder="Search events by venue, requirements..."
+                        className={styles.searchInput}
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
                     />
+                </div>
+
+                <div className={styles.viewToggle}>
+                    <button
+                        className={`${styles.toggleBtn} ${viewMode === 'upcoming' ? styles.active : ''}`}
+                        onClick={() => setViewMode('upcoming')}
+                    >
+                        Upcoming
+                    </button>
+                    <button
+                        className={`${styles.toggleBtn} ${viewMode === 'past' ? styles.active : ''}`}
+                        onClick={() => setViewMode('past')}
+                    >
+                        Past
+                    </button>
+                    <button
+                        className={`${styles.toggleBtn} ${viewMode === 'all' ? styles.active : ''}`}
+                        onClick={() => setViewMode('all')}
+                    >
+                        All
+                    </button>
                 </div>
             </div>
 
@@ -132,38 +190,86 @@ export default function AdminEventsPage() {
             ) : (
                 <div className={styles.eventGrid}>
                     {filteredEvents.map(event => (
-                        <Link href={`/admin/events/${event.id}`} key={event.id} style={{ textDecoration: 'none' }}>
-                            <div className={styles.eventCard}>
-                                <div className={styles.cardHeader}>
-                                    <span className={styles.venueTag}>{event.venue_name}</span>
-                                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>{event.priority}</span>
-                                </div>
-                                <div className={styles.cardBody}>
-                                    <h3 className={styles.eventTitle}>{event.venue_name} Event</h3>
-                                    <div className={styles.infoRow}>
-                                        <Calendar size={16} /> <span>{event.date}</span>
-                                        <Clock size={16} style={{ marginLeft: '1rem' }} /> <span>{event.start_time || 'TBD'}</span>
-                                    </div>
-                                    <div className={styles.infoRow}>
-                                        <Users size={16} /> <span>{event.guest_count} Guests</span>
-                                    </div>
+                        <div key={event.id} className={styles.eventCard}>
+                            <div className={styles.eventTime}>
+                                <Clock size={16} />
+                                {(() => {
+                                    const formatTime = (timeStr?: string) => {
+                                        if (!timeStr) return 'TBD';
+                                        const [h, m] = timeStr.split(':');
+                                        const d = new Date();
+                                        d.setHours(Number(h));
+                                        d.setMinutes(Number(m));
+                                        return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+                                    };
+                                    return `${formatTime(event.start_time)} — ${formatTime(event.end_time)}`;
+                                })()}
+                                <span style={{ marginLeft: 'auto', fontSize: '0.85rem', color: '#64748b', fontWeight: 500 }}>
+                                    {new Date(event.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                                </span>
+                            </div>
 
-                                    <div className={`${styles.gapStatus} ${styles.gapWarning}`}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700, fontSize: '0.9rem' }}>
-                                            <AlertTriangle size={16} />
-                                            Planning In Progress
-                                        </div>
-                                        <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>
-                                            Staffing requirements being calculated
-                                        </div>
-                                    </div>
+                            <div className={styles.eventInfo}>
+                                <div className={styles.eventTitle}>{event.event_name || 'Untitled Event'}</div>
+                                <div className={styles.venueSubtext}>
+                                    <MapPin size={14} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'middle' }} />
+                                    {event.venue_name}
                                 </div>
-                                <div className={styles.cardFooter}>
-                                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary-color)' }}>View Details</span>
-                                    <ChevronRight size={18} style={{ color: '#cbd5e1' }} />
+                                <div className={styles.guestCount}>
+                                    <Users size={16} />
+                                    <strong>{event.guest_count}</strong> Guests expected
+                                </div>
+
+                                <div className={styles.reqsSummary}>
+                                    {(() => {
+                                        try {
+                                            if (!event.special_requirements || !event.special_requirements.startsWith('[')) return [];
+                                            const parsed = JSON.parse(event.special_requirements);
+                                            return Array.isArray(parsed) ? parsed : [];
+                                        } catch (e) { return []; }
+                                    })().map((r: any, idx: number) => (
+                                        <span key={idx} className={styles.reqMiniBadge}>
+                                            {r.quantity}x {r.skill}
+                                        </span>
+                                    ))}
                                 </div>
                             </div>
-                        </Link>
+
+                            <div className={styles.cardActions}>
+                                <button
+                                    onClick={() => setViewingEvent(event)}
+                                    className={styles.btnView}
+                                >
+                                    View
+                                </button>
+
+                                <button
+                                    onClick={() => {
+                                        setEditingEvent(event);
+                                        setIsModalOpen(true);
+                                    }}
+                                    className={styles.btnEdit}
+                                    title="Edit Event"
+                                >
+                                    <Pencil size={18} />
+                                </button>
+
+                                <button
+                                    onClick={() => handleDeleteEvent(event.id)}
+                                    className={styles.btnDelete}
+                                    title="Delete Event"
+                                >
+                                    <X size={20} />
+                                </button>
+
+                                <Link
+                                    href={`/plans?date=${event.date}`}
+                                    className={styles.btnPlan}
+                                >
+                                    Generate Plan
+                                </Link>
+                            </div>
+                        </div>
                     ))}
                     {filteredEvents.length === 0 && (
                         <div style={{ gridColumn: '1/-1', padding: '4rem', textAlign: 'center', color: '#94a3b8' }}>
@@ -175,11 +281,24 @@ export default function AdminEventsPage() {
 
             <EventModal
                 isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                onSave={handleCreateEvent}
+                onClose={() => {
+                    setIsModalOpen(false);
+                    setEditingEvent(null);
+                }}
+                onSave={handleSaveEvent}
                 venues={venues}
-                editingEvent={null}
+                editingEvent={editingEvent}
                 selectedDate={new Date().toISOString().split('T')[0]}
+            />
+
+            <EventDetailModal
+                event={viewingEvent}
+                onClose={() => setViewingEvent(null)}
+                venues={venues}
+                onEdit={(ev) => {
+                    setEditingEvent(ev);
+                    setIsModalOpen(true);
+                }}
             />
         </div>
     );

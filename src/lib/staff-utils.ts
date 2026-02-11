@@ -74,8 +74,8 @@ export function downloadCSVTemplate() {
         'other_languages',
         'special_skills',
         'home_base_venue',
-        'employment_type',
-        'availability_status',
+        'skills',
+        'languages',
         'notes'
     ];
 
@@ -88,9 +88,8 @@ export function downloadCSVTemplate() {
     ];
 
     const examples = [
-        ['John Doe', '+971501234567', 'Waiter', 'Bartender', 'good', 'French,Spanish', 'First Aid,VIP', 'SONARA', 'internal', 'available', 'Experienced server'],
-        ['Jane Smith', '+971509876543', 'Manager', '', 'fluent', 'Arabic', 'Leadership', 'NEST', 'internal', 'available', 'Guest relations specialist'],
-        ['Alex Brown', '+971505554433', 'Bartender', 'Waiter', 'medium', '', 'Mixology', 'LADY NARA', 'freelancer', 'available', 'Part-time support']
+        ['John Doe', '+971501234567', 'Waiter', 'Runner', 'good', 'SONARA', 'Service|Fine Dining', 'Spanish:fluent|French:conversational', 'Available weekends'],
+        ['Jane Smith', '+971509876543', 'Bartender', '', 'fluent', 'NEST', 'Mixology|Customer Service', 'English:native|Arabic:basic', 'Prefers night shifts']
     ];
 
     const csvContent = [

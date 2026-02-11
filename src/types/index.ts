@@ -53,12 +53,13 @@ export type CreateStaffDTO = Omit<StaffMember, 'id'>;
 
 export interface Event {
     id: number;
+    event_name?: string;
     date: string; // YYYY-MM-DD
     venue_id: number;
     guest_count: number;
     service_style_override?: string;
     special_requirements?: string;
-    priority: 'low' | 'normal' | 'high';
+    priority: 'normal' | 'vip' | 'vvip';
     start_time?: string; // HH:MM
     end_time?: string; // HH:MM
     venue_name?: string; // Joined from venues table

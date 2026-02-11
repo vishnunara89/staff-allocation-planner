@@ -39,6 +39,7 @@ interface ManningConfig {
 export default function VenueDetailPage({ params }: { params: { id: string } }) {
     const [venue, setVenue] = useState<Venue | null>(null);
     const [roles, setRoles] = useState<any[]>([]);
+    const [skills, setSkills] = useState<any[]>([]);
     const [manningTables, setManningTables] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'Overview' | 'Staffing Rules'>('Overview');
@@ -55,12 +56,6 @@ export default function VenueDetailPage({ params }: { params: { id: string } }) 
     const [showReasonModal, setShowReasonModal] = useState(false);
     const [changeReason, setChangeReason] = useState('');
 
-    const SKILL_OPTIONS = [
-        'Table Service', 'Food Running', 'Mixology', 'Barista',
-        'Hosting', 'Fine Dining', 'Buffet Service', 'Event Setup',
-        'Wine Service', 'Guest Relations', 'Cash Handling', 'Inventory',
-        'Team Lead', 'Training', 'VIP Service', 'Other'
-    ];
 
     const [activities, setActivities] = useState<any[]>([]);
 
@@ -71,9 +66,10 @@ export default function VenueDetailPage({ params }: { params: { id: string } }) 
     async function fetchVenueData() {
         setLoading(true);
         try {
-            const [venueRes, rolesRes, tablesRes, activityRes] = await Promise.all([
+            const [venueRes, rolesRes, skillsRes, tablesRes, activityRes] = await Promise.all([
                 fetch(`/api/venues/${params.id}`),
                 fetch(`/api/roles`),
+                fetch(`/api/skills`),
                 fetch(`/api/manning-tables?venue_id=${params.id}`),
                 fetch(`/api/activity?venue_id=${params.id}`)
             ]);
@@ -88,6 +84,10 @@ export default function VenueDetailPage({ params }: { params: { id: string } }) 
 
             if (rolesRes.ok) {
                 setRoles(await rolesRes.json());
+            }
+
+            if (skillsRes.ok) {
+                setSkills(await skillsRes.json());
             }
 
             if (tablesRes.ok) {
@@ -416,7 +416,7 @@ export default function VenueDetailPage({ params }: { params: { id: string } }) 
                                                         className={styles.skillSelect}
                                                     >
                                                         <option value="">Select Skill</option>
-                                                        {SKILL_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                                                        {skills.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
                                                     </select>
                                                 </td>
                                                 {row.counts.map((count: number, colIdx: number) => (

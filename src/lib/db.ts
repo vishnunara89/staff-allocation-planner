@@ -4,7 +4,6 @@ import type { Database as DatabaseType } from "better-sqlite3";
 
 import { ensureUsersExist } from "./ensureUsersExist";
 import { ensurePlansExist } from "./ensurePlansExist";
-import { ensureManagerVenuesExist } from "./ensureManagerVenuesExist";
 import { ensureEventsExist } from "./ensureEventsExist";
 import { ensureRolesExist } from "./ensureRolesExist";
 import { ensureStaffExist } from "./ensureStaffExist";
@@ -37,9 +36,9 @@ function addColumnIfMissing(
     .map((c: any) => c.name);
 
   if (!columns.includes(column)) {
-    database.prepare(
-      `ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`
-    ).run();
+    database
+      .prepare(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`)
+      .run();
     console.log(`➕ Added column ${column} to ${table}`);
   }
 }
@@ -62,12 +61,40 @@ if (!globalForDb.sqlite) {
     `).run();
 
     /* =========================
-       VENUES (SEED + TABLE)
+       SKILLS  (NEW TABLE ADDED)
+    ========================= */
+    database.prepare(`
+      CREATE TABLE IF NOT EXISTS skills (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT UNIQUE NOT NULL
+      )
+    `).run();
+
+    /* =========================
+       VENUES
     ========================= */
     ensureVenuesExist(database);
 
     /* =========================
-       EMPLOYEES (BASE TABLE)
+       USERS
+    ========================= */
+    ensureUsersExist(database);
+
+    /* =========================
+       MANAGER ↔ VENUES
+    ========================= */
+    database.prepare(`
+      CREATE TABLE IF NOT EXISTS manager_venues (
+        manager_id INTEGER NOT NULL,
+        venue_id INTEGER NOT NULL,
+        PRIMARY KEY (manager_id, venue_id),
+        FOREIGN KEY (manager_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (venue_id) REFERENCES venues(id) ON DELETE CASCADE
+      )
+    `).run();
+
+    /* =========================
+       EMPLOYEES
     ========================= */
     database.prepare(`
       CREATE TABLE IF NOT EXISTS employees (
@@ -87,7 +114,7 @@ if (!globalForDb.sqlite) {
     `).run();
 
     /* =========================
-       EMPLOYEES AUTO-MIGRATION
+       EMPLOYEE AUTO-MIGRATIONS
     ========================= */
     addColumnIfMissing(database, "employees", "secondary_roles", "TEXT DEFAULT '[]'");
     addColumnIfMissing(database, "employees", "other_languages", "TEXT DEFAULT '{}'");
@@ -118,13 +145,11 @@ if (!globalForDb.sqlite) {
     `).run();
 
     /* =========================
-       SEED & OTHER TABLES
+       SEEDS & OTHER TABLES
     ========================= */
-    ensureUsersExist(database);
     ensureRolesExist(database);
-    ensureStaffExist(database); // legacy compatibility if needed
+    ensureStaffExist(database);
     ensurePlansExist(database);
-    ensureManagerVenuesExist(database);
     ensureEventsExist(database);
     ensureStaffingPlansExist(database);
     ensureManningTablesExist(database);

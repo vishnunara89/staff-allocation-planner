@@ -12,6 +12,7 @@ import {
   Search,
 } from "lucide-react";
 import styles from "./managers.module.css";
+import { Venue } from "@/types";
 
 /* =====================
    TYPES
@@ -23,9 +24,8 @@ type Manager = {
   username: string;
   venues: string[];
   venueIds: number[];
+  venueCount: number; // ✅ IMPORTANT
 };
-
-import { Venue } from "@/types";
 
 export default function ManagersPage() {
   const [managers, setManagers] = useState<Manager[]>([]);
@@ -56,7 +56,7 @@ export default function ManagersPage() {
 
       const [mgrRes, venRes] = await Promise.all([
         fetch("/api/managers", { cache: "no-store" }),
-        fetch("/api/venues")
+        fetch("/api/venues"),
       ]);
 
       const mgrData = await mgrRes.json();
@@ -106,7 +106,7 @@ export default function ManagersPage() {
       setUsername("");
       setPassword("");
 
-      await loadData();
+      loadData();
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -115,7 +115,7 @@ export default function ManagersPage() {
   };
 
   /* =====================
-     ASSIGN VENUES
+     ASSIGN VENUES (FIXED)
   ===================== */
   const saveAssignment = async () => {
     if (!assignMgr) return;
@@ -130,9 +130,26 @@ export default function ManagersPage() {
         }),
       });
 
+      // ✅ INSTANT UI UPDATE
+      setManagers((prev) =>
+        prev.map((m) =>
+          m.id === assignMgr.id
+            ? {
+              ...m,
+              venueIds: selectedVenueIds,
+              venues: venues
+                .filter((v) => selectedVenueIds.includes(v.id))
+                .map((v) => v.name),
+              venueCount: selectedVenueIds.length,
+            }
+            : m
+        )
+      );
+
       setAssignMgr(null);
       setSelectedVenueIds([]);
-      loadData();
+
+      loadData(); // ✅ keep DB truth
     } catch (err) {
       console.error("Save failed:", err);
     }
@@ -156,100 +173,64 @@ export default function ManagersPage() {
 
       {error && <p className={styles.error}>{error}</p>}
 
-      <div style={{ background: 'white', padding: '1rem', borderRadius: '16px', border: '1px solid rgba(0, 0, 0, 0.05)', display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
-        <div style={{ position: 'relative', flex: 1, maxWidth: '400px' }}>
-          <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-          <input
-            type="text"
-            placeholder="Search managers..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            style={{ width: '100%', height: '48px', padding: '0 1rem 0 3rem', border: '1.5px solid #e2e8f0', borderRadius: '12px', background: '#f8fafc', outline: 'none' }}
-          />
-        </div>
-      </div>
-
       {loading ? (
         <p className={styles.muted}>Loading managers…</p>
       ) : managers.length === 0 ? (
         <p className={styles.muted}>No managers found</p>
       ) : (
         <div className={styles.grid}>
-          {managers.filter(m =>
-            !searchQuery ||
-            m.name?.toLowerCase()?.includes(searchQuery.toLowerCase()) ||
-            m.username?.toLowerCase()?.includes(searchQuery.toLowerCase())
-          ).map((m) => (
-            <div key={m.id} className={styles.managerCard}>
-              <div className={styles.iconCircle}>
-                <Shield size={20} />
+          {managers
+            .filter(
+              (m) =>
+                !searchQuery ||
+                m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                m.username.toLowerCase().includes(searchQuery.toLowerCase())
+            )
+            .map((m) => (
+              <div key={m.id} className={styles.managerCard}>
+                <div className={styles.iconCircle}>
+                  <Shield size={20} />
+                </div>
+
+                <h4>{m.name}</h4>
+
+                <div className={styles.detail}>
+                  <User size={14} /> {m.username}
+                </div>
+
+                <div className={styles.detail}>
+                  <Phone size={14} /> {m.phone}
+                </div>
+
+                <div className={styles.role}>Role: Manager</div>
+
+                <div className={styles.venueList}>
+                  {m.venues.length === 0 ? (
+                    <span className={styles.muted}>No venues assigned</span>
+                  ) : (
+                    m.venues.map((v) => (
+                      <span key={v} className={styles.badge}>
+                        <MapPin size={12} /> {v}
+                      </span>
+                    ))
+                  )}
+                </div>
+
+                <div className={styles.count}>
+                  Total Venues: <b>{m.venueCount}</b>
+                </div>
+
+                <button
+                  className={styles.assignBtn}
+                  onClick={() => {
+                    setAssignMgr(m);
+                    setSelectedVenueIds(m.venueIds);
+                  }}
+                >
+                  <ClipboardList size={14} /> Assign Venues
+                </button>
               </div>
-
-              <h4>{m.name}</h4>
-
-              <div className={styles.detail}>
-                <User size={14} /> {m.username}
-              </div>
-
-              <div className={styles.detail}>
-                <Phone size={14} /> {m.phone}
-              </div>
-
-              <div className={styles.role}>Role: Manager</div>
-
-              <div className={styles.venueList}>
-                {(m.venues || []).length === 0 ? (
-                  <span className={styles.muted}>No venues assigned</span>
-                ) : (
-                  m.venues.map((v) => (
-                    <span key={v} className={styles.badge}>
-                      <MapPin size={12} /> {v}
-                    </span>
-                  ))
-                )}
-              </div>
-
-              <div className={styles.count}>
-                Total Venues: <b>{(m.venues || []).length}</b>
-              </div>
-
-              <button
-                className={styles.assignBtn}
-                onClick={() => {
-                  setAssignMgr(m);
-                  setSelectedVenueIds(m.venueIds || []);
-                }}
-              >
-                <ClipboardList size={14} /> Assign Venues
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* ADD MANAGER MODAL */}
-      {showAdd && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modal}>
-            <div className={styles.modalHeader}>
-              <h3>Add Manager</h3>
-              <button onClick={() => setShowAdd(false)}>
-                <X size={16} />
-              </button>
-            </div>
-
-            <input className={styles.input} placeholder="Full Name" value={name} onChange={(e) => setName(e.target.value)} />
-            <input className={styles.input} placeholder="Phone Number" value={phone} onChange={(e) => setPhone(e.target.value)} />
-            <input className={styles.input} placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
-            <input className={styles.input} type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
-
-            <div className={styles.modalActions}>
-              <button className={styles.secondaryBtn} onClick={() => setShowAdd(false)}>Cancel</button>
-              <button className={styles.primaryBtn} onClick={addManager} disabled={submitting}>
-                {submitting ? "Creating..." : "Create Manager"}
-              </button>
-            </div>
-          </div>
+            ))}
         </div>
       )}
 
@@ -276,15 +257,20 @@ export default function ManagersPage() {
                   {v.name}
                 </label>
               ))}
-              {venues.length === 0 && <p className={styles.muted}>No venues available to assign.</p>}
             </div>
 
             <div className={styles.modalActions}>
-              <button className={styles.secondaryBtn} onClick={() => setAssignMgr(null)}>
+              <button
+                className={styles.secondaryBtn}
+                onClick={() => setAssignMgr(null)}
+              >
                 Cancel
               </button>
-              <button className={styles.primaryBtn} onClick={saveAssignment}>
-                Save Assignment
+              <button
+                className={styles.primaryBtn}
+                onClick={saveAssignment}
+              >
+                Save Assignment ({selectedVenueIds.length})
               </button>
             </div>
           </div>

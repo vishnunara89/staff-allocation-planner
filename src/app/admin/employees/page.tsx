@@ -7,7 +7,13 @@ import {
     FileDown,
     UserPlus,
     X,
-    Loader2
+    Loader2,
+    Pencil,
+    Trash2,
+    Phone as PhoneIcon,
+    MessageSquare,
+    Clock,
+    CalendarDays
 } from "lucide-react";
 import styles from "./employees.module.css";
 import CustomDropdown from "@/components/CustomDropdown";
@@ -15,17 +21,23 @@ import AdminEmployeeCard from "@/components/AdminEmployeeCard";
 import AdminImportModal from "@/components/AdminImportModal";
 import EmployeeModal from "@/components/EmployeeModal";
 import { StaffMember, Venue, Role } from "@/types";
-import { extractPhone } from "@/lib/staff-utils";
+
+function extractPhone(notes?: string): string {
+    if (!notes) return '';
+    const match = notes.match(/Phone: (.*?)(\n|$)/);
+    return match ? match[1] : '';
+}
 
 export default function AdminEmployeesPage() {
     const [staff, setStaff] = useState<StaffMember[]>([]);
     const [venues, setVenues] = useState<Venue[]>([]);
     const [roles, setRoles] = useState<Role[]>([]);
+    const [events, setEvents] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
-    const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [editingEmployee, setEditingEmployee] = useState<StaffMember | null>(null);
 
     // Filters
     const [filterRole, setFilterRole] = useState("");
@@ -39,14 +51,16 @@ export default function AdminEmployeesPage() {
     async function fetchData() {
         setLoading(true);
         try {
-            const [staffData, venuesData, rolesData] = await Promise.all([
+            const [staffData, venuesData, rolesData, eventsData] = await Promise.all([
                 fetch('/api/staff').then(r => r.json()),
                 fetch('/api/venues').then(r => r.json()),
-                fetch('/api/roles').then(r => r.json())
+                fetch('/api/roles').then(r => r.json()),
+                fetch('/api/events').then(r => r.json()).catch(() => [])
             ]);
             setStaff(staffData);
             setVenues(venuesData);
             setRoles(rolesData);
+            setEvents(Array.isArray(eventsData) ? eventsData : []);
         } catch (err) {
             console.error('Failed to fetch admin employee data:', err);
         } finally {
@@ -59,10 +73,26 @@ export default function AdminEmployeesPage() {
         return venues.find(v => v.id === id)?.name || '-';
     };
     const getRoleName = (id: number) => roles.find(r => r.id === id)?.name || '-';
+    const getEventName = (id?: number | null) => {
+        if (!id) return null;
+        const ev = events.find(e => e.id === id);
+        return ev ? `${ev.venue_name || 'Event'} — ${ev.date}` : null;
+    };
+
+    const handleDelete = async (id: number) => {
+        if (!confirm("Are you sure you want to delete this employee?")) return;
+        try {
+            const res = await fetch(`/api/staff/${id}`, { method: 'DELETE' });
+            if (res.ok) fetchData();
+        } catch (error) {
+            console.error("Delete failed:", error);
+        }
+    };
 
     const filteredEmployees = staff.filter(s => {
+        const phone = s.phone || extractPhone(s.notes);
         const matchesSearch = s.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (extractPhone(s.notes) || '').includes(searchQuery);
+            phone.includes(searchQuery);
         const matchesRole = !filterRole || s.primary_role_id === Number(filterRole);
         const matchesVenue = !filterVenue || s.home_base_venue_id === Number(filterVenue);
         const matchesStatus = !filterStatus || s.availability_status === filterStatus;
@@ -97,7 +127,7 @@ export default function AdminEmployeesPage() {
                     </button>
                     <button
                         className={styles.buttonPrimary}
-                        onClick={() => setIsAddModalOpen(true)}
+                        onClick={() => { setEditingEmployee(null); setIsAddModalOpen(true); }}
                         style={{ background: 'var(--primary-color)', color: 'white', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', boxShadow: '0 4px 10px rgba(124, 76, 44, 0.2)' }}
                     >
                         <UserPlus size={18} /> Add Employee
@@ -161,12 +191,16 @@ export default function AdminEmployeesPage() {
                             <th>Phone</th>
                             <th style={{ textAlign: 'center' }}>Contact</th>
                             <th>Status</th>
+                            <th>Event</th>
+                            <th>Hours</th>
                             <th style={{ textAlign: 'right' }}>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {filteredEmployees.map(emp => {
-                            const phone = extractPhone(emp.notes);
+                            const phone = emp.phone || extractPhone(emp.notes);
+                            const eventName = getEventName(emp.current_event_id);
+                            const cleanPhone = phone.replace(/[^0-9+]/g, '');
                             return (
                                 <tr key={emp.id}>
                                     <td>
@@ -182,11 +216,6 @@ export default function AdminEmployeesPage() {
                                                             EN: {emp.english_proficiency}
                                                         </span>
                                                     )}
-                                                    {Object.entries(emp.other_languages || {}).map(([lang, level]) => (
-                                                        <span key={lang} className={`${styles.tag} ${styles.tagLanguage}`}>
-                                                            {lang}: {level as string}
-                                                        </span>
-                                                    ))}
                                                     {(emp.special_skills as string[] || []).map(skill => (
                                                         <span key={skill} className={`${styles.tag} ${styles.tagSkill}`}>
                                                             {skill}
@@ -198,30 +227,30 @@ export default function AdminEmployeesPage() {
                                     </td>
                                     <td>{getRoleName(emp.primary_role_id)}</td>
                                     <td>{getVenueName(emp.home_base_venue_id)}</td>
-                                    <td>{phone || '-'}</td>
+                                    <td style={{ fontSize: '0.9rem', color: '#64748b' }}>{phone || '-'}</td>
                                     <td>
                                         <div className={styles.contactCell} style={{ justifyContent: 'center' }}>
+                                            {/* WhatsApp */}
                                             <a
-                                                href={phone ? `tel:${phone}` : '#'}
-                                                className={`${styles.iconButton} ${!phone ? styles.disabled : ''}`}
-                                                title={phone || "No phone provided"}
-                                                onClick={e => !phone && e.preventDefault()}
-                                            >
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-                                                </svg>
-                                            </a>
-                                            <a
-                                                href={phone ? `https://wa.me/${phone.replace(/\D/g, '')}` : '#'}
+                                                href={cleanPhone ? `https://wa.me/${cleanPhone.replace('+', '')}` : '#'}
                                                 target="_blank"
                                                 rel="noreferrer"
-                                                className={`${styles.iconButton} ${styles.whatsapp} ${!phone ? styles.disabled : ''}`}
-                                                title={phone || "No phone provided"}
-                                                onClick={e => !phone && e.preventDefault()}
+                                                className={`${styles.iconButton} ${styles.whatsapp} ${!cleanPhone ? styles.disabled : ''}`}
+                                                title={cleanPhone ? "WhatsApp" : "No phone"}
+                                                onClick={e => !cleanPhone && e.preventDefault()}
+                                                style={{ width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: cleanPhone ? 'rgba(37, 211, 102, 0.1)' : '#f1f5f9', color: cleanPhone ? '#25D366' : '#cbd5e1', textDecoration: 'none', transition: 'all 0.2s' }}
                                             >
-                                                <svg viewBox="0 0 448 512" fill="currentColor">
-                                                    <path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-5.5-2.8-23.2-8.5-44.2-27.1-16.4-14.6-27.4-32.6-30.6-38.2-3.2-5.6-.3-8.6 2.5-11.3 2.5-2.5 5.5-6.5 8.3-9.7 2.8-3.3 3.7-5.6 5.5-9.2 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 13.2 5.8 23.5 9.2 31.5 11.8 13.3 4.2 25.4 3.6 35 2.2 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z" />
-                                                </svg>
+                                                <MessageSquare size={16} />
+                                            </a>
+                                            {/* Phone Call */}
+                                            <a
+                                                href={cleanPhone ? `tel:${cleanPhone}` : '#'}
+                                                className={`${styles.iconButton} ${!cleanPhone ? styles.disabled : ''}`}
+                                                title={cleanPhone ? "Call" : "No phone"}
+                                                onClick={e => !cleanPhone && e.preventDefault()}
+                                                style={{ width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: cleanPhone ? 'rgba(124, 76, 44, 0.08)' : '#f1f5f9', color: cleanPhone ? '#7C4C2C' : '#cbd5e1', textDecoration: 'none', transition: 'all 0.2s' }}
+                                            >
+                                                <PhoneIcon size={16} />
                                             </a>
                                         </div>
                                     </td>
@@ -238,13 +267,55 @@ export default function AdminEmployeesPage() {
                                             {emp.availability_status}
                                         </span>
                                     </td>
+                                    <td style={{ fontSize: '0.85rem', color: '#64748b' }}>
+                                        {eventName ? (
+                                            <span style={{
+                                                display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+                                                padding: '3px 8px', background: '#f0f9ff', borderRadius: '6px',
+                                                fontSize: '0.8rem', fontWeight: 600, color: '#0369a1'
+                                            }}>
+                                                <CalendarDays size={13} /> {eventName}
+                                            </span>
+                                        ) : '-'}
+                                    </td>
+                                    <td style={{ fontSize: '0.85rem', color: '#64748b' }}>
+                                        {emp.working_hours ? (
+                                            <span style={{
+                                                display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+                                                padding: '3px 8px', background: '#faf5ff', borderRadius: '6px',
+                                                fontSize: '0.8rem', fontWeight: 600, color: '#7c3aed'
+                                            }}>
+                                                <Clock size={13} /> {emp.working_hours}h
+                                            </span>
+                                        ) : '-'}
+                                    </td>
                                     <td style={{ textAlign: 'right' }}>
-                                        <button
-                                            onClick={() => setSelectedEmployee(emp)}
-                                            style={{ background: 'none', border: '1.5px solid #e2e8f0', padding: '6px 12px', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 700, color: '#64748b', cursor: 'pointer' }}
-                                        >
-                                            View Profile
-                                        </button>
+                                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                                            <button
+                                                onClick={() => { setEditingEmployee(emp); setIsAddModalOpen(true); }}
+                                                style={{
+                                                    background: 'none', border: '1.5px solid #e2e8f0',
+                                                    padding: '6px 12px', borderRadius: '8px',
+                                                    fontSize: '0.8rem', fontWeight: 700, color: '#64748b',
+                                                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem'
+                                                }}
+                                                title="Edit Employee"
+                                            >
+                                                <Pencil size={14} /> Edit
+                                            </button>
+                                            <button
+                                                onClick={() => handleDelete(emp.id)}
+                                                style={{
+                                                    background: 'none', border: '1.5px solid #fecaca',
+                                                    padding: '6px 8px', borderRadius: '8px',
+                                                    cursor: 'pointer', color: '#ef4444',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                                }}
+                                                title="Delete Employee"
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             );
@@ -256,57 +327,6 @@ export default function AdminEmployeesPage() {
                 )}
             </div>
 
-            {selectedEmployee && (
-                <>
-                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1100 }} onClick={() => setSelectedEmployee(null)} />
-                    <div className={styles.profileSlideOut}>
-                        <div className={styles.profileHeader}>
-                            <button className={styles.closeBtn} onClick={() => setSelectedEmployee(null)}>
-                                <X size={18} />
-                            </button>
-                            <div style={{ marginTop: '1rem' }}>
-                                <span className={styles.infoLabel} style={{ marginBottom: '0.5rem', display: 'block' }}>Employee Profile</span>
-                                <h3 style={{ fontSize: '1.75rem', fontWeight: 700, margin: 0 }}>{selectedEmployee.full_name}</h3>
-                                <p style={{ color: '#64748b', margin: '0.25rem 0 0 0' }}>{getRoleName(selectedEmployee.primary_role_id)} • {selectedEmployee.employment_type}</p>
-                            </div>
-                        </div>
-                        <div className={styles.profileBody}>
-                            <AdminEmployeeCard employee={{
-                                id: selectedEmployee.id,
-                                name: selectedEmployee.full_name,
-                                role: getRoleName(selectedEmployee.primary_role_id),
-                                phone: extractPhone(selectedEmployee.notes) || '',
-                                status: selectedEmployee.availability_status
-                            }} />
-
-                            <div style={{ marginTop: '2.5rem' }}>
-                                <div className={styles.infoItem}>
-                                    <span className={styles.infoLabel}>Home Base</span>
-                                    <span className={styles.infoValue}>{getVenueName(selectedEmployee.home_base_venue_id)}</span>
-                                </div>
-                                <div className={styles.infoItem}>
-                                    <span className={styles.infoLabel}>Languages</span>
-                                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
-                                        <span style={{ padding: '2px 8px', background: '#f1f5f9', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 600 }}>English: {selectedEmployee.english_proficiency}</span>
-                                        {Object.entries(selectedEmployee.other_languages || {}).map(([lang, level]) => (
-                                            <span key={lang} style={{ padding: '2px 8px', background: '#f1f5f9', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 600 }}>{lang}: {level as string}</span>
-                                        ))}
-                                    </div>
-                                </div>
-                                <div className={styles.infoItem}>
-                                    <span className={styles.infoLabel}>Special Skills</span>
-                                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
-                                        {(selectedEmployee.special_skills as string[] || []).map(skill => (
-                                            <span key={skill} style={{ padding: '2px 8px', background: '#f0f9ff', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 600, color: '#0369a1' }}>{skill}</span>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </>
-            )}
-
             <AdminImportModal
                 isOpen={isImportModalOpen}
                 onClose={() => setIsImportModalOpen(false)}
@@ -315,10 +335,11 @@ export default function AdminEmployeesPage() {
 
             <EmployeeModal
                 isOpen={isAddModalOpen}
-                onClose={() => setIsAddModalOpen(false)}
-                onSuccess={fetchData}
+                onClose={() => { setIsAddModalOpen(false); setEditingEmployee(null); }}
+                onSuccess={() => { fetchData(); setEditingEmployee(null); }}
                 venues={venues}
                 roles={roles}
+                initialData={editingEmployee}
             />
         </div>
     );

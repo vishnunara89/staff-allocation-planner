@@ -57,8 +57,8 @@ export async function GET(
 }
 
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
-    try {
-        const body = await request.json();
+  try {
+    const body = await request.json();
 
     const result = db.prepare(`
       UPDATE employees SET
@@ -72,7 +72,10 @@ export async function PUT(request: Request, { params }: { params: { id: string }
         home_base_venue_id = @home_base_venue_id,
         employment_type = @employment_type,
         availability_status = @availability_status,
-        notes = @notes
+        notes = @notes,
+        phone = @phone,
+        current_event_id = @current_event_id,
+        working_hours = @working_hours
       WHERE id = @id
     `).run({
       id: params.id,
@@ -86,7 +89,10 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       home_base_venue_id: body.home_base_venue_id || null,
       employment_type: body.employment_type || "internal",
       availability_status: body.availability_status || "available",
-      notes: body.notes || ""
+      notes: body.notes || "",
+      phone: body.phone || "",
+      current_event_id: body.current_event_id ?? null,
+      working_hours: body.working_hours ?? 0
     });
 
     if (result.changes === 0) {
@@ -107,13 +113,25 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 }
 
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
-    try {
-        // Optional: Check for future assignments? For now force delete OK.
-        const stmt = db.prepare('DELETE FROM staff WHERE id = ?');
-        const res = stmt.run(params.id);
-        if (res.changes === 0) return NextResponse.json({ error: 'Staff not found' }, { status: 404 });
-        return NextResponse.json({ success: true });
-    } catch (error) {
-        return NextResponse.json({ error: 'Failed to delete staff' }, { status: 500 });
+  try {
+    const deleteTransaction = db.transaction(() => {
+      // Clean up staffing_plans that reference this employee
+      try {
+        db.prepare('UPDATE staffing_plans SET staff_id = NULL WHERE staff_id = ?').run(params.id);
+      } catch { /* table may not exist */ }
+
+      // Delete the employee from the correct table
+      const res = db.prepare('DELETE FROM employees WHERE id = ?').run(params.id);
+      return res;
+    });
+
+    const result = deleteTransaction();
+    if (result.changes === 0) {
+      return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
     }
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Employee DELETE error:', error);
+    return NextResponse.json({ error: 'Failed to delete employee' }, { status: 500 });
+  }
 }

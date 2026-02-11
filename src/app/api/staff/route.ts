@@ -129,7 +129,10 @@ export async function POST(request: Request) {
         employment_type,
         availability_status,
         notes,
-        employee_role
+        employee_role,
+        phone,
+        current_event_id,
+        working_hours
       ) VALUES (
         @full_name,
         @primary_role_id,
@@ -142,7 +145,10 @@ export async function POST(request: Request) {
         @employment_type,
         @availability_status,
         @notes,
-        @employee_role
+        @employee_role,
+        @phone,
+        @current_event_id,
+        @working_hours
       )
     `).run({
       full_name: body.full_name,
@@ -156,7 +162,10 @@ export async function POST(request: Request) {
       employment_type: body.employment_type || "internal",
       availability_status: body.availability_status || "available",
       notes: body.notes || "",
-      employee_role: body.employee_role || "staff"
+      employee_role: body.employee_role || "staff",
+      phone: body.phone || "",
+      current_event_id: body.current_event_id ?? null,
+      working_hours: body.working_hours ?? 0
     });
 
     return NextResponse.json(

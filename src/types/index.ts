@@ -43,6 +43,9 @@ export interface StaffMember {
     home_base_venue_id?: number;
     employment_type: 'internal' | 'external' | 'freelancer';
     availability_status: 'available' | 'off' | 'leave';
+    phone?: string;
+    current_event_id?: number;
+    working_hours?: number;
     notes?: string;
 }
 

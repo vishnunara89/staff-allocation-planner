@@ -121,6 +121,9 @@ if (!globalForDb.sqlite) {
     addColumnIfMissing(database, "employees", "special_skills", "TEXT DEFAULT '[]'");
     addColumnIfMissing(database, "employees", "experience_tags", "TEXT DEFAULT '[]'");
     addColumnIfMissing(database, "employees", "employee_role", "TEXT DEFAULT 'staff'");
+    addColumnIfMissing(database, "employees", "phone", "TEXT DEFAULT ''");
+    addColumnIfMissing(database, "employees", "current_event_id", "INTEGER");
+    addColumnIfMissing(database, "employees", "working_hours", "REAL DEFAULT 0");
 
     /* =========================
        STAFFING RULES

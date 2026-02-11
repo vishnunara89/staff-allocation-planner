@@ -21,7 +21,9 @@ import {
     ChevronRight,
     Clock,
     ChevronUp,
-    ChevronDown
+    ChevronDown,
+    Briefcase,
+    Zap
 } from "lucide-react";
 import styles from "../venues.module.css";
 import Link from "next/link";
@@ -59,8 +61,6 @@ const MOCK_ACTIVITY = [
 export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
     const [activeTab, setActiveTab] = useState<TabType>('Overview');
     const [venue, setVenue] = useState<any>(null);
-    const [rules, setRules] = useState<any[]>([]);
-    const [manningTables, setManningTables] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     // Edit Venue State
@@ -74,6 +74,14 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
 
     // Roles & Skills for Manning Rules
     const [roles, setRoles] = useState<any[]>([]);
+    const [skills, setSkills] = useState<any[]>([]);
+
+    // Quick Add State
+    const [newRole, setNewRole] = useState("");
+    const [newSkill, setNewSkill] = useState("");
+    const [showRoleManager, setShowRoleManager] = useState(false);
+    const [showSkillManager, setShowSkillManager] = useState(false);
+
     const SKILL_OPTIONS = [
         'Table Service', 'Food Running', 'Mixology', 'Barista',
         'Hosting', 'Fine Dining', 'Buffet Service', 'Event Setup',
@@ -88,6 +96,7 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
     ];
 
     // Manning Rules Excel Editor State
+    const [manningTables, setManningTables] = useState<any[]>([]);
     const [manningConfig, setManningConfig] = useState<any>({ brackets: DEFAULT_BRACKETS, rows: [] });
     const [savingManning, setSavingManning] = useState(false);
     const [manningFeedback, setManningFeedback] = useState('');
@@ -96,10 +105,12 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
         async function fetchVenueData() {
             setLoading(true);
             try {
-                const [venueRes, rulesRes, tablesRes] = await Promise.all([
+                const [venueRes, rulesRes, tablesRes, rolesRes, skillsRes] = await Promise.all([
                     fetch(`/api/venues/${params.id}`),
                     fetch(`/api/rules?venue_id=${params.id}`),
-                    fetch(`/api/manning-tables?venue_id=${params.id}`)
+                    fetch(`/api/manning-tables?venue_id=${params.id}`),
+                    fetch('/api/roles'),
+                    fetch('/api/skills')
                 ]);
 
                 if (venueRes.ok) {
@@ -109,10 +120,7 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                         document.title = `${vData.name} (Admin) | NARA Pulse`;
                     }
                 }
-                if (rulesRes.ok) {
-                    const rData = await rulesRes.json();
-                    setRules(Array.isArray(rData) ? rData : []);
-                }
+
                 if (tablesRes.ok) {
                     const tData = await tablesRes.json();
                     setManningTables(Array.isArray(tData) ? tData : []);
@@ -124,6 +132,9 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                         setManningConfig({ brackets: DEFAULT_BRACKETS, rows: [] });
                     }
                 }
+
+                if (rolesRes.ok) setRoles(await rolesRes.json());
+                if (skillsRes.ok) setSkills(await skillsRes.json());
 
                 // Fetch assigned managers
                 try {
@@ -137,17 +148,6 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                     }
                 } catch (error) {
                     console.error('Failed to fetch managers:', error);
-                }
-
-                // Fetch roles for staffing rules dropdowns
-                try {
-                    const rolesRes = await fetch('/api/roles');
-                    if (rolesRes.ok) {
-                        const rolesData = await rolesRes.json();
-                        setRoles(Array.isArray(rolesData) ? rolesData : []);
-                    }
-                } catch (error) {
-                    console.error('Failed to fetch roles:', error);
                 }
 
                 // Try to fetch activity log (API doesn't exist yet - using MOCK for UX)
@@ -171,6 +171,56 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
 
         fetchVenueData();
     }, [params.id]);
+
+    const handleAddRole = async () => {
+        if (!newRole.trim()) return;
+        try {
+            const res = await fetch("/api/roles", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: newRole.trim() })
+            });
+            if (res.ok) {
+                const updated = await fetch("/api/roles").then(r => r.json());
+                setRoles(updated);
+                setNewRole("");
+            }
+        } catch (e) { console.error(e); }
+    };
+
+    const handleDeleteRole = async (id: number) => {
+        if (!confirm("Are you sure you want to delete this role?")) return;
+        try {
+            // Assuming simplified DELETE logic matching the style
+            const res = await fetch(`/api/roles?id=${id}`, { method: 'DELETE' });
+            // For now, optimistically update UI as well
+            setRoles(prev => prev.filter(r => r.id !== id));
+        } catch (e) { console.error(e); }
+    };
+
+    const handleAddSkill = async () => {
+        if (!newSkill.trim()) return;
+        try {
+            const res = await fetch("/api/skills", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: newSkill.trim() })
+            });
+            if (res.ok) {
+                const updated = await fetch("/api/skills").then(r => r.json());
+                setSkills(updated);
+                setNewSkill("");
+            }
+        } catch (e) { console.error(e); }
+    };
+
+    const handleDeleteSkill = async (id: number) => {
+        if (!confirm("Are you sure you want to delete this skill?")) return;
+        try {
+            const res = await fetch(`/api/skills?id=${id}`, { method: 'DELETE' });
+            setSkills(prev => prev.filter(s => s.id !== id));
+        } catch (e) { console.error(e); }
+    };
 
     if (loading) {
         return (
@@ -506,11 +556,12 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                                                 onChange={(e) => setNewRole(e.target.value)}
                                                 placeholder="Enter role name..."
                                                 style={{
-                                                    padding: "12px 12px 12px 48px",
-                                                    borderRadius: '12px',
+                                                    padding: "0 12px 0 42px",
+                                                    height: '40px',
+                                                    borderRadius: '10px',
                                                     border: '1.5px solid #e2e8f0',
                                                     width: '100%',
-                                                    fontSize: '1rem',
+                                                    fontSize: '0.95rem',
                                                     fontWeight: 600,
                                                     background: 'white',
                                                     transition: 'all 0.2s'
@@ -522,26 +573,34 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                                         <button
                                             onClick={handleAddRole}
                                             style={{
-                                                width: '48px', height: '48px',
-                                                borderRadius: '12px',
+                                                height: '40px',
+                                                padding: '0 .25rem',
+                                                borderRadius: '10px',
+                                                marginLeft: '50px',
                                                 background: 'var(--primary-color)', color: 'white',
                                                 border: 'none',
                                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                gap: '0.4rem',
                                                 cursor: 'pointer',
                                                 boxShadow: '0 4px 12px rgba(124, 76, 44, 0.2)',
-                                                transition: 'all 0.2s'
+                                                transition: 'all 0.2s',
+                                                fontWeight: 600,
+                                                fontSize: '0.9rem'
                                             }}
                                             onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
                                             onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
                                             title="Save Role to Database"
                                         >
-                                            <Save size={22} strokeWidth={2.5} />
+                                            <Save size={16} strokeWidth={2.5} />
+                                            Save
                                         </button>
                                         <button
                                             onClick={() => setShowRoleManager(!showRoleManager)}
                                             style={{
-                                                width: '48px', height: '48px',
-                                                borderRadius: '12px',
+                                                width: '40px', height: '40px',
+                                                padding: '0 .25rem',
+                                                borderRadius: '10px',
+                                                marginLeft: '-10px',
                                                 background: 'white', color: '#64748b',
                                                 border: '1.5px solid #e2e8f0',
                                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -552,7 +611,7 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                                             onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
                                             title="Select Roles for Deleting"
                                         >
-                                            <Trash2 size={22} strokeWidth={2.5} />
+                                            <Trash2 size={18} strokeWidth={2.5} />
                                         </button>
 
                                         {showRoleManager && (
@@ -598,11 +657,12 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                                                 onChange={(e) => setNewSkill(e.target.value)}
                                                 placeholder="Enter skill name..."
                                                 style={{
-                                                    padding: "12px 12px 12px 48px",
-                                                    borderRadius: '12px',
+                                                    padding: "0 12px 0 42px",
+                                                    height: '40px',
+                                                    borderRadius: '10px',
                                                     border: '1.5px solid #e2e8f0',
                                                     width: '100%',
-                                                    fontSize: '1rem',
+                                                    fontSize: '0.95rem',
                                                     fontWeight: 600,
                                                     background: 'white',
                                                     transition: 'all 0.2s'
@@ -614,26 +674,34 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                                         <button
                                             onClick={handleAddSkill}
                                             style={{
-                                                width: '48px', height: '48px',
-                                                borderRadius: '12px',
+                                                height: '40px',
+                                                padding: '0 .25rem',
+                                                borderRadius: '10px',
+                                                marginLeft: '50px',
                                                 background: 'var(--primary-color)', color: 'white',
                                                 border: 'none',
                                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                gap: '0.4rem',
                                                 cursor: 'pointer',
                                                 boxShadow: '0 4px 12px rgba(124, 76, 44, 0.2)',
-                                                transition: 'all 0.2s'
+                                                transition: 'all 0.2s',
+                                                fontWeight: 600,
+                                                fontSize: '0.9rem'
                                             }}
                                             onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
                                             onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
                                             title="Save Skill to Database"
                                         >
-                                            <Save size={22} strokeWidth={2.5} />
+                                            <Save size={16} strokeWidth={2.5} />
+                                            Save
                                         </button>
                                         <button
                                             onClick={() => setShowSkillManager(!showSkillManager)}
                                             style={{
-                                                width: '48px', height: '48px',
-                                                borderRadius: '12px',
+                                                width: '40px', height: '40px',
+                                                padding: '0 .25rem',
+                                                borderRadius: '10px',
+                                                marginLeft: '-10px',
                                                 background: 'white', color: '#64748b',
                                                 border: '1.5px solid #e2e8f0',
                                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -644,7 +712,7 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                                             onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
                                             title="Select Skills for Deleting"
                                         >
-                                            <Trash2 size={22} strokeWidth={2.5} />
+                                            <Trash2 size={18} strokeWidth={2.5} />
                                         </button>
 
                                         {showSkillManager && (

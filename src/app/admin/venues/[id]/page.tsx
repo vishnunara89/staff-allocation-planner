@@ -21,7 +21,14 @@ import {
     ChevronRight,
     Clock,
     ChevronUp,
-    ChevronDown
+    ChevronDown,
+    Briefcase,
+    Zap,
+    LayoutDashboard,
+    Wrench,
+    FilePlus,
+    MessageSquare,
+    Phone
 } from "lucide-react";
 import styles from "../venues.module.css";
 import Link from "next/link";
@@ -79,6 +86,8 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
     // Add Role/Skill State
     const [newRole, setNewRole] = useState("");
     const [newSkill, setNewSkill] = useState("");
+    const [showRoleManager, setShowRoleManager] = useState(false);
+    const [showSkillManager, setShowSkillManager] = useState(false);
 
     // Default PAX brackets (0-100 in steps of 10)
     const DEFAULT_BRACKETS = [
@@ -229,6 +238,56 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
         }
     };
 
+    const handleDeleteRole = async (id: number) => {
+        const roleToDelete = roles.find(r => r.id === id);
+        if (!confirm(`Are you sure? Deleting "${roleToDelete?.name}" will remove it from the database and all staffing rules across all venues.`)) return;
+        try {
+            const res = await fetch(`/api/roles?id=${id}`, { method: 'DELETE' });
+            if (res.ok) {
+                const deletedName = roleToDelete?.name;
+                setRoles(prev => prev.filter(r => r.id !== id));
+
+                // Cleanup current manning rules in the editor
+                setManningConfig((prev: any) => ({
+                    ...prev,
+                    rows: prev.rows.map((row: any) => ({
+                        ...row,
+                        role: row.role === deletedName ? "" : row.role
+                    }))
+                }));
+            } else {
+                alert("Failed to delete role");
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    const handleDeleteSkill = async (id: number) => {
+        const skillToDelete = skills.find(s => s.id === id);
+        if (!confirm(`Are you sure? Deleting "${skillToDelete?.name}" will remove it from the database and all staffing rules across all venues.`)) return;
+        try {
+            const res = await fetch(`/api/skills?id=${id}`, { method: 'DELETE' });
+            if (res.ok) {
+                const deletedName = skillToDelete?.name;
+                setSkills(prev => prev.filter(s => s.id !== id));
+
+                // Cleanup current manning rules in the editor
+                setManningConfig((prev: any) => ({
+                    ...prev,
+                    rows: prev.rows.map((row: any) => ({
+                        ...row,
+                        skill: row.skill === deletedName ? "" : row.skill
+                    }))
+                }));
+            } else {
+                alert("Failed to delete skill");
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
     if (loading) {
         return (
             <div style={{ padding: '8rem', textAlign: 'center', color: '#64748b' }}>
@@ -339,7 +398,9 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                             key={tab}
                             className={`${styles.tab} ${activeTab === tab ? styles.activeTab : ''}`}
                             onClick={() => setActiveTab(tab)}
+                            style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}
                         >
+                            {tab === 'Overview' ? <LayoutDashboard size={18} /> : <Wrench size={18} />}
                             {tab}
                         </div>
                     ))}
@@ -404,10 +465,23 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                                                         <table className={styles.savedRulesTable} style={{ minWidth: '100%' }}>
                                                             <thead>
                                                                 <tr>
-                                                                    <th className={styles.stickyCol} style={{ background: '#f8fafc' }}>Role</th>
-                                                                    <th className={styles.stickyCol} style={{ left: '160px', width: '150px', background: '#f8fafc' }}>Skill</th>
+                                                                    <th className={styles.stickyCol} style={{ background: '#f8fafc' }}>
+                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                                            <Briefcase size={14} /> ROLE
+                                                                        </div>
+                                                                    </th>
+                                                                    <th className={styles.stickyCol} style={{ left: '160px', width: '150px', background: '#f8fafc' }}>
+                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                                            <Zap size={14} /> SKILL
+                                                                        </div>
+                                                                    </th>
                                                                     {table.config.brackets?.map((bracket: string, i: number) => (
-                                                                        <th key={i} style={{ minWidth: '80px' }}>{bracket} PAX</th>
+                                                                        <th key={i} style={{ minWidth: '80px' }}>
+                                                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                                                                                <Users size={10} style={{ opacity: 0.6 }} />
+                                                                                <span style={{ fontSize: '0.75rem' }}>{bracket} PAX</span>
+                                                                            </div>
+                                                                        </th>
                                                                     ))}
                                                                 </tr>
                                                             </thead>
@@ -462,7 +536,7 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                                                                     title="WhatsApp"
                                                                     style={{ background: 'rgba(37, 211, 102, 0.1)', color: '#25D366' }}
                                                                 >
-                                                                    💬
+                                                                    <MessageSquare size={16} />
                                                                 </a>
                                                                 <a
                                                                     href={`tel:${mgr.phone}`}
@@ -470,7 +544,7 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                                                                     title="Call"
                                                                     style={{ background: 'rgba(124, 76, 44, 0.08)', color: '#7C4C2C' }}
                                                                 >
-                                                                    📞
+                                                                    <Phone size={16} />
                                                                 </a>
                                                             </>
                                                         )}
@@ -527,104 +601,262 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                     {activeTab === 'Staffing Rules' && (
                         <div className={styles.manningEditor}>
                             {/* NEW: Add Role/Skill Inputs */}
-                            <div style={{ display: "flex", gap: "2rem", marginBottom: "1.5rem" }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <input
-                                        value={newRole}
-                                        onChange={(e) => setNewRole(e.target.value)}
-                                        placeholder="Add Role"
-                                        style={{ padding: "8px 12px", borderRadius: '8px', border: '1px solid #cbd5e1' }}
-                                    />
-                                    <button
-                                        onClick={handleAddRole}
-                                        style={{
-                                            width: '32px', height: '32px',
-                                            borderRadius: '8px',
-                                            background: '#f1f5f9', color: '#475569',
-                                            border: 'none',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            cursor: 'pointer'
-                                        }}
-                                    >
-                                        <Plus size={16} />
-                                    </button>
+                            <div style={{
+                                display: "flex",
+                                gap: "2.5rem",
+                                marginBottom: "2rem",
+                                flexWrap: "wrap",
+                                padding: "1.5rem",
+                                background: "rgba(248, 250, 252, 0.5)",
+                                borderRadius: "20px",
+                                border: "1px solid #f1f5f9",
+                                alignItems: "flex-end"
+                            }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1, minWidth: '280px' }}>
+                                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <Users size={14} style={{ color: 'var(--primary-color)' }} /> Quick Add Role
+                                    </label>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', position: 'relative' }}>
+                                        <div style={{ position: 'relative', flex: 1 }}>
+                                            <Shield size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--primary-color)' }} />
+                                            <input
+                                                value={newRole}
+                                                onChange={(e) => setNewRole(e.target.value)}
+                                                placeholder="Enter role name..."
+                                                style={{
+                                                    padding: "12px 12px 12px 40px",
+                                                    borderRadius: '12px',
+                                                    border: '1.5px solid #e2e8f0',
+                                                    width: '100%',
+                                                    fontSize: '0.9rem',
+                                                    fontWeight: 600,
+                                                    background: 'white',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                                onFocus={(e) => e.target.style.borderColor = 'var(--primary-color)'}
+                                                onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
+                                            />
+                                        </div>
+                                        <button
+                                            onClick={handleAddRole}
+                                            style={{
+                                                width: '48px', height: '48px',
+                                                borderRadius: '12px',
+                                                background: 'var(--primary-color)', color: 'white',
+                                                border: 'none',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                cursor: 'pointer',
+                                                boxShadow: '0 4px 12px rgba(124, 76, 44, 0.2)',
+                                                transition: 'all 0.2s'
+                                            }}
+                                            onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+                                            onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                                            title="Save Role to Database"
+                                        >
+                                            <Save size={22} strokeWidth={2.5} />
+                                        </button>
+                                        <button
+                                            onClick={() => setShowRoleManager(!showRoleManager)}
+                                            style={{
+                                                width: '48px', height: '48px',
+                                                borderRadius: '12px',
+                                                background: 'white', color: '#64748b',
+                                                border: '1.5px solid #e2e8f0',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.2s'
+                                            }}
+                                            onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
+                                            onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
+                                            title="Select Roles for Deleting"
+                                        >
+                                            <Trash2 size={22} strokeWidth={2.5} />
+                                        </button>
+
+                                        {showRoleManager && (
+                                            <div style={{
+                                                position: 'absolute', top: '100%', left: 0, marginTop: '12px',
+                                                background: 'white', border: '1px solid #e2e8f0', borderRadius: '16px',
+                                                boxShadow: '0 10px 25px rgba(0,0,0,0.1)', zIndex: 100,
+                                                padding: '1rem', minWidth: '240px', maxHeight: '350px', overflowY: 'auto'
+                                            }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', paddingBottom: '0.75rem', borderBottom: '1px solid #f1f5f9' }}>
+                                                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Database Roles</span>
+                                                    <button onClick={() => setShowRoleManager(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}><X size={16} /></button>
+                                                </div>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                                    {roles.map(r => (
+                                                        <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.6rem 0.75rem', borderRadius: '8px', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                                                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1a1a1a' }}>{r.name}</span>
+                                                            <button
+                                                                onClick={() => handleDeleteRole(r.id)}
+                                                                style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', opacity: 0.4, transition: 'all 0.2s' }}
+                                                                onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+                                                                onMouseLeave={e => e.currentTarget.style.opacity = '0.4'}
+                                                            >
+                                                                <Trash2 size={16} />
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
 
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <input
-                                        value={newSkill}
-                                        onChange={(e) => setNewSkill(e.target.value)}
-                                        placeholder="Add Skill"
-                                        style={{ padding: "8px 12px", borderRadius: '8px', border: '1px solid #cbd5e1' }}
-                                    />
-                                    <button
-                                        onClick={handleAddSkill}
-                                        style={{
-                                            width: '32px', height: '32px',
-                                            borderRadius: '8px',
-                                            background: '#f1f5f9', color: '#475569',
-                                            border: 'none',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            cursor: 'pointer'
-                                        }}
-                                    >
-                                        <Plus size={16} />
-                                    </button>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1, minWidth: '280px' }}>
+                                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <Database size={14} style={{ color: 'var(--primary-color)' }} /> Quick Add Skill
+                                    </label>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', position: 'relative' }}>
+                                        <div style={{ position: 'relative', flex: 1 }}>
+                                            <Zap size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--primary-color)' }} />
+                                            <input
+                                                value={newSkill}
+                                                onChange={(e) => setNewSkill(e.target.value)}
+                                                placeholder="Enter skill name..."
+                                                style={{
+                                                    padding: "12px 12px 12px 40px",
+                                                    borderRadius: '12px',
+                                                    border: '1.5px solid #e2e8f0',
+                                                    width: '100%',
+                                                    fontSize: '0.9rem',
+                                                    fontWeight: 600,
+                                                    background: 'white',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                                onFocus={(e) => e.target.style.borderColor = 'var(--primary-color)'}
+                                                onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
+                                            />
+                                        </div>
+                                        <button
+                                            onClick={handleAddSkill}
+                                            style={{
+                                                width: '48px', height: '48px',
+                                                borderRadius: '12px',
+                                                background: 'var(--primary-color)', color: 'white',
+                                                border: 'none',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                cursor: 'pointer',
+                                                boxShadow: '0 4px 12px rgba(124, 76, 44, 0.2)',
+                                                transition: 'all 0.2s'
+                                            }}
+                                            onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+                                            onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                                            title="Save Skill to Database"
+                                        >
+                                            <Save size={22} strokeWidth={2.5} />
+                                        </button>
+                                        <button
+                                            onClick={() => setShowSkillManager(!showSkillManager)}
+                                            style={{
+                                                width: '48px', height: '48px',
+                                                borderRadius: '12px',
+                                                background: 'white', color: '#64748b',
+                                                border: '1.5px solid #e2e8f0',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.2s'
+                                            }}
+                                            onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
+                                            onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
+                                            title="Select Skills for Deleting"
+                                        >
+                                            <Trash2 size={22} strokeWidth={2.5} />
+                                        </button>
+
+                                        {showSkillManager && (
+                                            <div style={{
+                                                position: 'absolute', top: '100%', left: 0, marginTop: '12px',
+                                                background: 'white', border: '1px solid #e2e8f0', borderRadius: '16px',
+                                                boxShadow: '0 10px 25px rgba(0,0,0,0.1)', zIndex: 100,
+                                                padding: '1rem', minWidth: '240px', maxHeight: '350px', overflowY: 'auto'
+                                            }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', paddingBottom: '0.75rem', borderBottom: '1px solid #f1f5f9' }}>
+                                                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Database Skills</span>
+                                                    <button onClick={() => setShowSkillManager(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}><X size={16} /></button>
+                                                </div>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                                    {skills.map(s => (
+                                                        <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.6rem 0.75rem', borderRadius: '8px', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                                                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1a1a1a' }}>{s.name}</span>
+                                                            <button
+                                                                onClick={() => handleDeleteSkill(s.id)}
+                                                                style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', opacity: 0.4, transition: 'all 0.2s' }}
+                                                                onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+                                                                onMouseLeave={e => e.currentTarget.style.opacity = '0.4'}
+                                                            >
+                                                                <Trash2 size={16} />
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 
-                            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1.5rem' }}>
-                                <div className={styles.manningActions}>
-                                    {manningFeedback && (
-                                        <span className={styles.feedback} style={{ color: 'var(--success-color)', fontWeight: 600, fontSize: '0.9rem' }}>
-                                            {manningFeedback}
-                                        </span>
-                                    )}
-                                    <button
-                                        onClick={async () => {
-                                            setSavingManning(true);
-                                            setManningFeedback('');
-                                            try {
-                                                const res = await fetch('/api/manning-tables', {
-                                                    method: 'POST',
-                                                    headers: { 'Content-Type': 'application/json' },
-                                                    body: JSON.stringify({
-                                                        venue_id: Number(params.id),
-                                                        department: 'all',
-                                                        config: manningConfig
-                                                    })
-                                                });
-                                                if (res.ok) {
-                                                    setManningFeedback('Staffing rules updated!');
-                                                    setTimeout(() => setManningFeedback(''), 3000);
-                                                }
-                                            } catch (err) {
-                                                setManningFeedback('Failed to sync');
-                                            } finally {
-                                                setSavingManning(false);
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '2rem', alignItems: 'center', gap: '1.5rem' }}>
+                                {manningFeedback && (
+                                    <span className={styles.feedback} style={{ color: '#059669', fontWeight: 700, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <Check size={18} /> {manningFeedback}
+                                    </span>
+                                )}
+                                <button
+                                    onClick={async () => {
+                                        setSavingManning(true);
+                                        setManningFeedback('');
+                                        try {
+                                            const res = await fetch('/api/manning-tables', {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({
+                                                    venue_id: Number(params.id),
+                                                    department: 'all',
+                                                    config: manningConfig
+                                                })
+                                            });
+                                            if (res.ok) {
+                                                setManningFeedback('Staffing rules updated!');
+                                                setTimeout(() => setManningFeedback(''), 3000);
                                             }
-                                        }}
-                                        style={{
-                                            background: 'var(--primary-color)',
-                                            color: 'white',
-                                            border: 'none',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            gap: '0.75rem',
-                                            height: '48px',
-                                            padding: '0 2rem',
-                                            borderRadius: '12px',
-                                            fontWeight: 700,
-                                            boxShadow: '0 4px 12px rgba(124, 76, 44, 0.15)',
-                                            cursor: 'pointer'
-                                        }}
-                                        disabled={savingManning}
-                                    >
-                                        {savingManning ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-                                        {savingManning ? 'Syncing...' : 'Save Staffing Rules'}
-                                    </button>
-                                </div>
+                                        } catch (err) {
+                                            setManningFeedback('Failed to sync');
+                                        } finally {
+                                            setSavingManning(false);
+                                        }
+                                    }}
+                                    style={{
+                                        background: 'var(--primary-color)',
+                                        color: 'white',
+                                        border: 'none',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '0.75rem',
+                                        height: '52px',
+                                        padding: '0 2.5rem',
+                                        borderRadius: '14px',
+                                        fontWeight: 700,
+                                        fontSize: '1.05rem',
+                                        boxShadow: '0 8px 20px rgba(124, 76, 44, 0.25)',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.transform = 'scale(1.02)';
+                                        e.currentTarget.style.boxShadow = '0 10px 25px rgba(124, 76, 44, 0.3)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.transform = 'scale(1)';
+                                        e.currentTarget.style.boxShadow = '0 8px 20px rgba(124, 76, 44, 0.25)';
+                                    }}
+                                    disabled={savingManning}
+                                >
+                                    {savingManning ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
+                                    {savingManning ? 'Syncing...' : 'Save Staffing Rules'}
+                                </button>
                             </div>
 
                             <div className={styles.excelGridContainer}>
@@ -632,14 +864,26 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                                     <thead>
                                         <tr>
                                             <th className={styles.stickyTrash}></th>
-                                            <th className={styles.stickyCol}>Role</th>
-                                            <th className={styles.stickyColSkill}>Skill</th>
+                                            <th className={styles.stickyCol} style={{ background: '#f8fafc', fontWeight: 800 }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                    <Briefcase size={16} /> ROLE
+                                                </div>
+                                            </th>
+                                            <th className={styles.stickyColSkill} style={{ background: '#f8fafc', fontWeight: 800 }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                    <Zap size={16} /> SKILL
+                                                </div>
+                                            </th>
                                             {manningConfig.brackets.map((bracket: string, idx: number) => (
                                                 <th key={idx} className={styles.bracketHeader}>
-                                                    <span className={styles.bracketLabel}>{bracket}</span>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem' }}>
+                                                        <span style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                                                            <Users size={10} /> PAX
+                                                        </span>
+                                                        <span className={styles.bracketLabel}>{bracket}</span>
+                                                    </div>
                                                     <button
                                                         onClick={() => {
-                                                            if (!confirm('Remove PAX bracket?')) return;
                                                             const newConfig = { ...manningConfig };
                                                             newConfig.brackets = newConfig.brackets.filter((_: any, i: number) => i !== idx);
                                                             newConfig.rows = newConfig.rows.map((row: any) => ({
@@ -649,24 +893,28 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                                                             setManningConfig(newConfig);
                                                         }}
                                                         className={styles.removeBracketBtn}
+                                                        style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', opacity: 0.4, transition: 'all 0.2s', marginTop: '4px' }}
+                                                        onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+                                                        onMouseLeave={e => e.currentTarget.style.opacity = '0.4'}
                                                         title="Remove Bracket"
                                                     >
                                                         <X size={12} />
                                                     </button>
                                                 </th>
                                             ))}
-                                            <th style={{ background: 'white', minWidth: '100px' }}>
+                                            <th className={styles.bracketHeader} style={{ verticalAlign: 'middle' }}>
                                                 <button
                                                     onClick={() => {
-                                                        const lastBracket = manningConfig.brackets[manningConfig.brackets.length - 1] || '0-10';
-                                                        // Parse "90-100" -> 100
-                                                        const parts = lastBracket.split('-');
-                                                        const lastMax = parts.length === 2 ? parseInt(parts[1]) : 0;
-
-                                                        // New bracket: 100-110
-                                                        const newStart = lastMax;
-                                                        const newEnd = lastMax + 10;
-                                                        const newBracket = `${newStart}-${newEnd}`;
+                                                        const lastBracket = manningConfig.brackets[manningConfig.brackets.length - 1] || '0-50';
+                                                        let newBracket = "0";
+                                                        if (lastBracket.includes('+')) {
+                                                            const num = parseInt(lastBracket);
+                                                            newBracket = `${num + 50}+`;
+                                                        } else {
+                                                            const parts = lastBracket.split('-');
+                                                            const end = parseInt(parts[parts.length - 1]);
+                                                            newBracket = `${end}-${end + 50}`;
+                                                        }
 
                                                         const newConfig = { ...manningConfig };
                                                         newConfig.brackets = [...newConfig.brackets, newBracket];
@@ -677,63 +925,91 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                                                         setManningConfig(newConfig);
                                                     }}
                                                     className={styles.addBracketBtn}
-                                                >+ PAX</button>
+                                                    style={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '0.4rem',
+                                                        padding: '0.4rem 0.8rem',
+                                                        fontSize: '0.7rem',
+                                                        background: 'rgba(124, 76, 44, 0.1)',
+                                                        color: 'var(--primary-color)',
+                                                        border: 'none',
+                                                        borderRadius: '8px',
+                                                        fontWeight: 800,
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.2s'
+                                                    }}
+                                                    onMouseEnter={e => {
+                                                        e.currentTarget.style.background = 'var(--primary-color)';
+                                                        e.currentTarget.style.color = 'white';
+                                                    }}
+                                                    onMouseLeave={e => {
+                                                        e.currentTarget.style.background = 'rgba(124, 76, 44, 0.1)';
+                                                        e.currentTarget.style.color = 'var(--primary-color)';
+                                                    }}
+                                                >
+                                                    <Plus size={12} strokeWidth={3} /> ADD PAX
+                                                </button>
                                             </th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {manningConfig.rows.map((row: any, rowIdx: number) => (
                                             <tr key={rowIdx}>
-                                                {/* Delete button (First column) */}
                                                 <td className={styles.stickyTrash}>
                                                     <button
                                                         onClick={() => {
-                                                            if (!confirm('Remove this role?')) return;
+                                                            if (!confirm('Remove this row?')) return;
                                                             const newConfig = { ...manningConfig };
                                                             newConfig.rows = newConfig.rows.filter((_: any, i: number) => i !== rowIdx);
                                                             setManningConfig(newConfig);
                                                         }}
                                                         className={styles.removeRoleBtn}
-                                                        title="Remove Row"
                                                     >
-                                                        <Trash2 size={14} />
+                                                        <Trash2 size={16} />
                                                     </button>
                                                 </td>
-                                                {/* Role dropdown */}
                                                 <td className={styles.stickyCol}>
-                                                    <select
-                                                        value={row.role || ''}
-                                                        onChange={e => {
-                                                            const newConfig = { ...manningConfig };
-                                                            newConfig.rows = [...newConfig.rows];
-                                                            newConfig.rows[rowIdx] = { ...newConfig.rows[rowIdx], role: e.target.value };
-                                                            setManningConfig(newConfig);
-                                                        }}
-                                                        className={styles.roleSelect}
-                                                    >
-                                                        <option value="">Select Role</option>
-                                                        {roles.map(r => (
-                                                            <option key={r.id} value={r.name}>{r.name}</option>
-                                                        ))}
-                                                    </select>
+                                                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                                                        <Briefcase size={14} style={{ position: 'absolute', left: '10px', pointerEvents: 'none', color: 'var(--primary-color)', opacity: 0.6 }} />
+                                                        <select
+                                                            value={row.role || ''}
+                                                            onChange={e => {
+                                                                const newConfig = { ...manningConfig };
+                                                                newConfig.rows = [...newConfig.rows];
+                                                                newConfig.rows[rowIdx] = { ...newConfig.rows[rowIdx], role: e.target.value };
+                                                                setManningConfig(newConfig);
+                                                            }}
+                                                            className={styles.roleSelect}
+                                                            style={{ paddingLeft: '2rem' }}
+                                                        >
+                                                            <option value="">Select Role</option>
+                                                            {roles.map(r => (
+                                                                <option key={r.id} value={r.name}>{r.name}</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
                                                 </td>
-                                                {/* Skill dropdown */}
                                                 <td className={styles.stickyColSkill}>
-                                                    <select
-                                                        value={row.skill || ''}
-                                                        onChange={e => {
-                                                            const newConfig = { ...manningConfig };
-                                                            newConfig.rows = [...newConfig.rows];
-                                                            newConfig.rows[rowIdx] = { ...newConfig.rows[rowIdx], skill: e.target.value };
-                                                            setManningConfig(newConfig);
-                                                        }}
-                                                        className={styles.skillSelect}
-                                                    >
-                                                        <option value="">Select Skill</option>
-                                                        {skills.map(s => (
-                                                            <option key={s.id} value={s.name}>{s.name}</option>
-                                                        ))}
-                                                    </select>
+                                                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                                                        <Zap size={14} style={{ position: 'absolute', left: '10px', pointerEvents: 'none', color: 'var(--primary-color)', opacity: 0.6 }} />
+                                                        <select
+                                                            value={row.skill || ''}
+                                                            onChange={e => {
+                                                                const newConfig = { ...manningConfig };
+                                                                newConfig.rows = [...newConfig.rows];
+                                                                newConfig.rows[rowIdx] = { ...newConfig.rows[rowIdx], skill: e.target.value };
+                                                                setManningConfig(newConfig);
+                                                            }}
+                                                            className={styles.skillSelect}
+                                                            style={{ paddingLeft: '2rem' }}
+                                                        >
+                                                            <option value="">Select Skill</option>
+                                                            {skills.map(s => (
+                                                                <option key={s.id} value={s.name}>{s.name}</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
                                                 </td>
                                                 {row.counts.map((count: number, colIdx: number) => (
                                                     <td key={colIdx}>
@@ -809,9 +1085,37 @@ export default function AdminVenueDetailPage({ params }: VenueDetailProps) {
                                         }];
                                         setManningConfig(newConfig);
                                     }}
-                                    className={styles.addBracketBtn}
-                                    style={{ borderStyle: 'solid', padding: '0.6rem 1.25rem', marginTop: '1.5rem' }}
-                                >+ Add Row</button>
+                                    className={styles.addRowBtn}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.75rem',
+                                        padding: '0.85rem 1.75rem',
+                                        marginTop: '1.5rem',
+                                        background: 'white',
+                                        border: '2px solid #e2e8f0',
+                                        borderRadius: '12px',
+                                        fontWeight: 700,
+                                        color: '#64748b',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s',
+                                        boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.borderColor = 'var(--primary-color)';
+                                        e.currentTarget.style.color = 'var(--primary-color)';
+                                        e.currentTarget.style.background = 'rgba(124, 76, 44, 0.05)';
+                                        e.currentTarget.style.transform = 'translateY(-2px)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.borderColor = '#e2e8f0';
+                                        e.currentTarget.style.color = '#64748b';
+                                        e.currentTarget.style.background = 'white';
+                                        e.currentTarget.style.transform = 'translateY(0)';
+                                    }}
+                                >
+                                    <FilePlus size={18} /> Add New Row
+                                </button>
                             </div>
                         </div>
                     )}

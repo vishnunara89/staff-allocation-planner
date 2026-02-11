@@ -13,18 +13,10 @@ export function ensureUsersExist(db: Database) {
     )
   `).run();
 
-  // Seed roles
-  const roles = ["admin", "manager"];
-
-  for (const role of roles) {
-    db.prepare(
-      "INSERT OR IGNORE INTO roles (name) VALUES (?)"
-    ).run(role);
-  }
-
   /* =========================
      USERS TABLE
   ========================= */
+  // Note: The users table uses a TEXT 'role' with a CHECK constraint rather than a foreign key to roles table.
   db.prepare(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -32,8 +24,7 @@ export function ensureUsersExist(db: Database) {
       phone TEXT,
       username TEXT UNIQUE NOT NULL,
       password TEXT NOT NULL,
-      role_id INTEGER NOT NULL,
-      FOREIGN KEY (role_id) REFERENCES roles(id)
+      role TEXT CHECK(role IN ('admin', 'manager')) NOT NULL
     )
   `).run();
 
@@ -45,21 +36,17 @@ export function ensureUsersExist(db: Database) {
     .get("admin");
 
   if (!admin) {
-    const adminRole = db
-      .prepare("SELECT id FROM roles WHERE name = ?")
-      .get("admin") as { id: number };
-
     const hashedAdminPassword = bcrypt.hashSync("admin123", 10);
 
     db.prepare(`
-      INSERT INTO users (name, phone, username, password, role_id)
+      INSERT INTO users (name, phone, username, password, role)
       VALUES (?, ?, ?, ?, ?)
     `).run(
       "System Admin",
       "0000000000",
       "admin",
       hashedAdminPassword,
-      adminRole.id
+      "admin"
     );
 
     console.log("✅ Default admin created (admin / admin123)");
@@ -73,21 +60,17 @@ export function ensureUsersExist(db: Database) {
     .get("manager");
 
   if (!manager) {
-    const managerRole = db
-      .prepare("SELECT id FROM roles WHERE name = ?")
-      .get("manager") as { id: number };
-
     const hashedManagerPassword = bcrypt.hashSync("manager123", 10);
 
     db.prepare(`
-      INSERT INTO users (name, phone, username, password, role_id)
+      INSERT INTO users (name, phone, username, password, role)
       VALUES (?, ?, ?, ?, ?)
     `).run(
       "Default Manager",
       "9999999999",
       "manager",
       hashedManagerPassword,
-      managerRole.id
+      "manager"
     );
 
     console.log("✅ Default manager created (manager / manager123)");

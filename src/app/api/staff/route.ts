@@ -42,6 +42,29 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    /* =========================
+       DYNAMIC STATUS CLEANUP
+    ========================= */
+    const now = new Date();
+    const currentDate = now.toISOString().split('T')[0]; // YYYY-MM-DD
+    const currentTime = now.toTimeString().split(' ')[0].substring(0, 5); // HH:MM
+
+    // Revert 'in-event' status to 'available' for employees who no longer have active assignments
+    // An assignment is active if:
+    // 1. Its date is today AND end_time is in the future
+    // 2. OR its date is in the future
+    db.prepare(`
+      UPDATE employees
+      SET availability_status = 'available'
+      WHERE availability_status = 'in-event'
+      AND id NOT IN (
+        SELECT employee_id 
+        FROM employee_assignments 
+        WHERE (date > ?) 
+        OR (date = ? AND end_time > ?)
+      )
+    `).run(currentDate, currentDate, currentTime);
+
     let rows: any[] = [];
 
     /* =========================

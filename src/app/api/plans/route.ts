@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { getUserRole, getUserId } from '@/lib/auth-utils';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
     try {
         const role = getUserRole();
@@ -79,6 +81,7 @@ export async function POST(request: Request) {
         // Get event details for times
         const event = db.prepare('SELECT start_time, end_time FROM events WHERE id = ?').get(event_id) as { start_time: string, end_time: string };
 
+        let planId: any;
         db.transaction(() => {
             // 1. Cleanup existing generated plan for this event
             db.prepare('DELETE FROM generated_plans WHERE event_id = ?').run(event_id);
@@ -89,7 +92,7 @@ export async function POST(request: Request) {
                 generated_by: userId || 1, // Default to admin if not found (shouldn't happen in real app)
                 plan_data: JSON.stringify(assignments)
             });
-            const planId = result.lastInsertRowid;
+            planId = result.lastInsertRowid;
 
             // 3. Insert Assignments
             assignments.forEach((a: any) => {
@@ -105,7 +108,18 @@ export async function POST(request: Request) {
                 });
             });
 
-            // 4. Update legacy staffing_plans for compatibility (Optional, but safe)
+            // 4. Update employee statuses to 'in-event' if they are currently 'available'
+            assignments.forEach((a: any) => {
+                if (a.staff_id && a.staff_id > 0) {
+                    db.prepare(`
+                        UPDATE employees 
+                        SET availability_status = 'in-event' 
+                        WHERE id = ? AND availability_status = 'available'
+                    `).run(a.staff_id);
+                }
+            });
+
+            // 5. Update legacy staffing_plans for compatibility (Optional, but safe)
             db.prepare('DELETE FROM staffing_plans WHERE event_date = ? AND venue_id = ?').run(date, venue_id);
             const insertLegacy = db.prepare(`
                 INSERT INTO staffing_plans (event_date, venue_id, staff_id, assigned_role_id, status, reasoning)
@@ -125,7 +139,7 @@ export async function POST(request: Request) {
 
         })();
 
-        return NextResponse.json({ success: true, planId: 1 }); // Mock ID or actual
+        return NextResponse.json({ success: true, planId: Number(planId) });
     } catch (error) {
         console.error('Save plan error:', error);
         return NextResponse.json({ error: 'Failed to save plan' }, { status: 500 });

@@ -42,7 +42,7 @@ export interface StaffMember {
     experience_tags: string[];
     home_base_venue_id?: number;
     employment_type: 'internal' | 'external' | 'freelancer';
-    availability_status: 'available' | 'off' | 'leave';
+    availability_status: 'available' | 'off-duty' | 'in-event' | 'leave';
     phone?: string;
     current_event_id?: number;
     working_hours?: number;

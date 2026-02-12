@@ -300,7 +300,8 @@ export default function EmployeeModal({
                 phone: initialData.phone || "",
                 notes: initialData.notes || "",
                 current_event_id: String(initialData.current_event_id || ""),
-                working_hours: String(initialData.working_hours || "")
+                working_hours: String(initialData.working_hours || ""),
+                availability_status: initialData.availability_status || "available"
             };
         }
         return {
@@ -310,7 +311,8 @@ export default function EmployeeModal({
             phone: "",
             notes: "",
             current_event_id: "",
-            working_hours: ""
+            working_hours: "",
+            availability_status: "available"
         };
     };
 
@@ -383,7 +385,7 @@ export default function EmployeeModal({
                 phone: formData.phone,
                 notes: formData.notes,
                 employment_type: 'internal',
-                availability_status: initialData?.availability_status || 'available',
+                availability_status: formData.availability_status || 'available',
                 special_skills: selectedSkills,
                 other_languages: selectedLanguages, // Send as object, API will stringify if needed
                 current_event_id: formData.current_event_id ? Number(formData.current_event_id) : null,
@@ -762,6 +764,33 @@ export default function EmployeeModal({
                                 </div>
                             </div>
                         )}
+
+                        {/* Availability Status */}
+                        <div style={{ marginBottom: '1.25rem', marginTop: '1.25rem', paddingTop: '1.25rem', borderTop: '1px solid #f1f5f9' }}>
+                            <label style={{
+                                fontSize: '0.8rem', fontWeight: 700, color: '#94a3b8',
+                                textTransform: 'uppercase', letterSpacing: '0.05em',
+                                display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem'
+                            }}>
+                                <Zap size={16} style={{ color: 'var(--primary-color)' }} /> Availability Status
+                            </label>
+                            <select
+                                disabled={readOnly}
+                                value={formData.availability_status}
+                                onChange={e => setFormData({ ...formData, availability_status: e.target.value })}
+                                style={{
+                                    width: '100%', height: '52px', padding: '0 1rem',
+                                    border: '1.5px solid #e2e8f0', borderRadius: '12px',
+                                    background: '#f8fafc', outline: 'none', fontSize: '1rem',
+                                    fontWeight: 600, cursor: 'pointer', boxSizing: 'border-box'
+                                }}
+                            >
+                                <option value="available">Available</option>
+                                <option value="off-duty">Off Duty</option>
+                                <option value="in-event">In an Event</option>
+                                <option value="leave">On Leave</option>
+                            </select>
+                        </div>
 
                         {/* Additional Notes */}
                         <div>

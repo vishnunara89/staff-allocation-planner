@@ -66,7 +66,12 @@ export default function AdminPlansPage() {
             if (Array.isArray(plansJson)) {
                 plansJson.forEach((p: any) => {
                     const key = `${p.event_date}_${p.venue_id}`;
-                    pMap.set(key, p);
+                    // Use plan_id if present (from unified API), fallback to id
+                    const normalizedPlan = {
+                        ...p,
+                        id: p.plan_id || p.id
+                    };
+                    pMap.set(key, normalizedPlan);
                 });
             }
             setPlansMap(pMap);
@@ -274,6 +279,7 @@ export default function AdminPlansPage() {
                 currentPlan && (
                     <GeneratedPlanView
                         plan={currentPlan}
+                        planId={currentPlan.id}
                         onBack={() => { setView('list'); fetchData(); }}
                         onExport={() => { }}
                         eventName={currentEvent?.event_name || ''}

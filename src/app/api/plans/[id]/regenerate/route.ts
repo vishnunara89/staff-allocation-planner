@@ -87,6 +87,13 @@ export async function POST(
                             a.staff_id, existing.event_id, id, event.date,
                             startTime, endTime, Math.round(hours * 100) / 100
                         );
+
+                        // Update employee status to 'in-event' if currently 'available'
+                        db.prepare(`
+                            UPDATE employees 
+                            SET availability_status = 'in-event' 
+                            WHERE id = ? AND availability_status = 'available'
+                        `).run(a.staff_id);
                     }
                 });
             });

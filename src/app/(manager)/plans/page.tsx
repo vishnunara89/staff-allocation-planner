@@ -233,8 +233,9 @@ export default function PlansPage() {
             };
 
             // 4. Save to Database for persistence
+            let planId = -1;
             try {
-                await fetch('/api/plans', {
+                const saveRes = await fetch('/api/plans', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -249,11 +250,18 @@ export default function PlansPage() {
                         }))
                     })
                 });
+                if (saveRes.ok) {
+                    const saveData = await saveRes.json();
+                    planId = Number(saveData.planId) || -1;
+                }
             } catch (saveError) {
                 console.error('Failed to persist plan:', saveError);
             }
 
-            setCurrentPlan(newPlan);
+            setCurrentPlan({
+                ...newPlan,
+                id: planId
+            });
             setCurrentEvent(event);
 
             // 5. Update local state to reflect the new plan immediately
@@ -441,6 +449,7 @@ export default function PlansPage() {
             {view === 'generated' && currentPlan && (
                 <GeneratedPlanView
                     plan={currentPlan}
+                    planId={currentPlan.id}
                     onBack={() => { setView('list'); fetchData(); }}
                     onExport={() => { }}
                     eventName={currentEvent?.event_name || ''}

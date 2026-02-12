@@ -145,7 +145,8 @@ export default function StaffPage() {
           <CustomDropdown
             options={[
               { id: 'available', name: 'Available' },
-              { id: 'off', name: 'Off' },
+              { id: 'off-duty', name: 'Off Duty' },
+              { id: 'in-event', name: 'In an Event' },
               { id: 'leave', name: 'Leave' }
             ]}
             value={filterStatus}
@@ -234,8 +235,14 @@ export default function StaffPage() {
                       borderRadius: '20px',
                       fontSize: '0.75rem',
                       fontWeight: 700,
-                      background: emp.availability_status === 'available' ? '#dcfce7' : emp.availability_status === 'leave' ? '#fff7ed' : '#f1f5f9',
-                      color: emp.availability_status === 'available' ? '#166534' : emp.availability_status === 'leave' ? '#9a3412' : '#475569',
+                      background: emp.availability_status === 'available' ? '#dcfce7' :
+                        emp.availability_status === 'leave' ? '#fff7ed' :
+                          emp.availability_status === 'in-event' ? '#e0f2fe' :
+                            emp.availability_status === 'off-duty' ? '#f1f5f9' : '#f1f5f9',
+                      color: emp.availability_status === 'available' ? '#166534' :
+                        emp.availability_status === 'leave' ? '#9a3412' :
+                          emp.availability_status === 'in-event' ? '#0369a1' :
+                            emp.availability_status === 'off-duty' ? '#475569' : '#475569',
                       textTransform: 'capitalize'
                     }}>
                       {emp.availability_status}
